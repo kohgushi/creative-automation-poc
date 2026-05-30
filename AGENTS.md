@@ -118,6 +118,12 @@ Do not skip milestones unless the user explicitly asks. At the end of each miles
 - Known limitations.
 - Next recommended milestone.
 
+## Clarification Rule
+
+When implementation raises a meaningful product, architecture, data contract, API-cost, output-quality, or milestone-scope question, stop and ask the user before choosing unilaterally.
+
+Make the question specific and include the tradeoff. Do not ask for routine low-risk implementation details that are already covered by `SPEC.md`, `MILESTONES.md`, or local code patterns.
+
 ## CLI Shape
 
 Target final command:
@@ -158,7 +164,17 @@ Never commit `.env` or real API keys. Keep `.env.example` safe to commit.
 
 ## Development Commands
 
-Use `uv` for local development:
+Use `uv` for dependency management.
+
+For Codex-driven routine verification in this environment, prefer the existing virtualenv commands because `uv run` may rewrite `uv.lock` or hit cache/network constraints:
+
+```bash
+.venv/bin/python main.py --brief input_examples/briefs/summer_refresh.yaml --assets input_examples/assets --out outputs --dry-run
+.venv/bin/python -m pytest
+.venv/bin/ruff check .
+```
+
+For user-side local execution, `uv` commands are still acceptable:
 
 ```bash
 uv sync

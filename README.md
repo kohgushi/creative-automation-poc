@@ -51,6 +51,19 @@ uv run python main.py \
   --image-provider openai
 ```
 
+During local development, the existing virtualenv can also be used directly:
+
+```bash
+.venv/bin/python main.py \
+  --brief input_examples/briefs/summer_refresh.yaml \
+  --assets input_examples/assets \
+  --out outputs \
+  --dry-run
+
+.venv/bin/python -m pytest
+.venv/bin/ruff check .
+```
+
 ## Environment
 
 Create a local `.env` file:
