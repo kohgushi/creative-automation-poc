@@ -5,6 +5,7 @@ from pathlib import Path
 
 from creative_automation.brief_loader import BriefLoadError
 from creative_automation.pipeline import build_dry_run_result, format_dry_run
+from creative_automation.prompt_planner import PromptPlannerError
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -15,6 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--prompt-planner", default="openai", help="Prompt planner provider")
     parser.add_argument("--image-provider", default="openai", help="Image generation provider")
     parser.add_argument("--dry-run", action="store_true", help="Load inputs and print asset classification only")
+    parser.add_argument("--show-prompts", action="store_true", help="Generate and print image prompts during dry-run")
     return parser
 
 
@@ -26,8 +28,14 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("Milestone 1 supports --dry-run only; generation and rendering are implemented later.")
 
     try:
-        result = build_dry_run_result(args.brief, args.assets, args.out)
-    except BriefLoadError as exc:
+        result = build_dry_run_result(
+            args.brief,
+            args.assets,
+            args.out,
+            prompt_planner_name=args.prompt_planner,
+            show_prompts=args.show_prompts,
+        )
+    except (BriefLoadError, PromptPlannerError) as exc:
         parser.error(str(exc))
 
     print(format_dry_run(result, args.out))

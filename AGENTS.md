@@ -164,23 +164,22 @@ Never commit `.env` or real API keys. Keep `.env.example` safe to commit.
 
 ## Development Commands
 
-Use `uv` for dependency management.
+Use standard `venv + pip` for local development. Do not use `uv run` for routine verification in this repository.
 
-For Codex-driven routine verification in this environment, prefer the existing virtualenv commands because `uv run` may rewrite `uv.lock` or hit cache/network constraints:
+Create or refresh the environment with:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -e ".[dev]"
+```
+
+Verify with:
 
 ```bash
 .venv/bin/python main.py --brief input_examples/briefs/summer_refresh.yaml --assets input_examples/assets --out outputs --dry-run
 .venv/bin/python -m pytest
 .venv/bin/ruff check .
-```
-
-For user-side local execution, `uv` commands are still acceptable:
-
-```bash
-uv sync
-uv run python main.py --brief input_examples/briefs/summer_refresh.yaml --assets input_examples/assets --out outputs --prompt-planner openai --image-provider openai
-uv run pytest
-uv run ruff check .
 ```
 
 ## Testing Expectations

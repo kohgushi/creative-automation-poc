@@ -43,7 +43,7 @@ input_examples/
 ## Target Command
 
 ```bash
-uv run python main.py \
+.venv/bin/python main.py \
   --brief input_examples/briefs/summer_refresh.yaml \
   --assets input_examples/assets \
   --out outputs \
@@ -51,7 +51,17 @@ uv run python main.py \
   --image-provider openai
 ```
 
-During local development, the existing virtualenv can also be used directly:
+## Setup
+
+Create or refresh the local environment:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -e ".[dev]"
+```
+
+During local development, run dry-run validation before using external APIs:
 
 ```bash
 .venv/bin/python main.py \

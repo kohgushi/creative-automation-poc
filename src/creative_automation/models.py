@@ -103,9 +103,17 @@ class AssetVariant(BaseModel):
         return self.source_visual_path or self.product_asset_path
 
 
+class PlannedPrompt(BaseModel):
+    product_id: str
+    variant_id: str
+    prompt_type: AssetSource
+    prompt: str
+
+
 class ProductAssetPlan(BaseModel):
     product: Product
     variants: list[AssetVariant]
+    prompts: list[PlannedPrompt] = Field(default_factory=list)
 
 
 class DryRunResult(BaseModel):
