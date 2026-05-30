@@ -7,6 +7,7 @@ from creative_automation.brief_loader import BriefLoadError
 from creative_automation.generators import ImageGeneratorError
 from creative_automation.pipeline import build_dry_run_result, format_dry_run, run_pipeline
 from creative_automation.prompt_planner import PromptPlannerError
+from creative_automation.reporter import default_report_path, write_report
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -18,6 +19,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--image-provider", default="openai", help="Image generation provider")
     parser.add_argument("--dry-run", action="store_true", help="Load inputs and print asset classification only")
     parser.add_argument("--show-prompts", action="store_true", help="Generate and print image prompts during dry-run")
+    parser.add_argument("--report", action="store_true", help="Write outputs/<campaign_id>/report.json")
     return parser
 
 
@@ -44,6 +46,10 @@ def main(argv: list[str] | None = None) -> int:
             )
     except (BriefLoadError, ImageGeneratorError, PromptPlannerError) as exc:
         parser.error(str(exc))
+
+    if args.report:
+        report_path = write_report(result, default_report_path(args.out, result.campaign.campaign_id))
+        print(f"Report: {report_path.as_posix()}")
 
     print(format_dry_run(result, args.out))
     return 0

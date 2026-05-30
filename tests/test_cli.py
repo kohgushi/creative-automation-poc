@@ -74,3 +74,27 @@ def test_cli_prepares_source_visuals_with_mock_generator(tmp_path, capsys) -> No
     assert (
         tmp_path / "summer_refresh_2026" / "tropical_trail_mix" / "text_generated" / "generated_source_visual.png"
     ).exists()
+
+
+def test_cli_writes_report_when_requested(tmp_path, capsys) -> None:
+    exit_code = main(
+        [
+            "--brief",
+            "input_examples/briefs/summer_refresh.yaml",
+            "--assets",
+            "input_examples/assets",
+            "--out",
+            str(tmp_path),
+            "--prompt-planner",
+            "rule-based",
+            "--image-provider",
+            "mock",
+            "--report",
+        ]
+    )
+
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Report:" in output
+    assert (tmp_path / "summer_refresh_2026" / "report.json").exists()
