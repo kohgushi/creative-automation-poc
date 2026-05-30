@@ -75,26 +75,48 @@ outputs/<campaign_id>/<product_id>/<asset_variant_id>/
 
 Do not reintroduce older input directories such as `examples/` or root-level `input_assets/`.
 
-## Recommended Architecture
+## Module Boundaries
 
 Use a Python CLI with core pipeline logic under `src/creative_automation/`.
 
-Minimum modules:
+Core modules:
 
-- `cli.py`: command-line orchestration.
+- `cli.py`: CLI argument parsing and execution entrypoint.
+- `pipeline.py`: orchestration across loading, asset discovery, prompt planning, generation, rendering, and reporting.
 - `models.py`: Pydantic data models and validation.
-- `brief_loader.py`: YAML loading.
+- `brief_loader.py`: YAML loading and validation.
 - `asset_store.py`: asset discovery and output path management.
 - `prompt_planner.py`: prompt planner interface, OpenAI LLM planner, and optional rule-based development planner.
 - `generators.py`: image generation provider interface, OpenAI image generator, and optional mock generator.
 - `renderer.py`: Pillow-based final creative rendering.
+- `settings.py`: environment variables and default configuration.
 
 Optional modules:
 
 - `reporter.py`: JSON report generation.
 - `compliance.py`: brand and legal checks.
 
+Dependency direction:
+
+- `cli.py` calls `pipeline.py`.
+- `pipeline.py` orchestrates the other modules.
+- Lower-level modules depend on `models.py`.
+- Lower-level modules must not import `cli.py`.
+- Provider-specific OpenAI code should stay inside `prompt_planner.py`, `generators.py`, or a small helper if needed.
+
 Keep `main.py` thin. It should delegate to the package CLI rather than contain business logic.
+
+## Milestone Workflow
+
+Follow `MILESTONES.md` for implementation order.
+
+Do not skip milestones unless the user explicitly asks. At the end of each milestone, report:
+
+- Changed files.
+- Verification commands.
+- Completion criteria status.
+- Known limitations.
+- Next recommended milestone.
 
 ## CLI Shape
 
