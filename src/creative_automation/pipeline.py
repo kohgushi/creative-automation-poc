@@ -8,6 +8,7 @@ from creative_automation.generators import get_image_generator
 from creative_automation.models import AssetSource
 from creative_automation.models import DryRunResult
 from creative_automation.prompt_planner import get_prompt_planner
+from creative_automation.renderer import CreativeRenderer
 
 
 def build_dry_run_result(
@@ -69,6 +70,34 @@ def prepare_source_visuals(
     return DryRunResult(campaign=campaign, products=products)
 
 
+def run_pipeline(
+    brief_path: Path | str,
+    asset_root: Path | str,
+    output_root: Path | str,
+    prompt_planner_name: str,
+    image_provider_name: str,
+) -> DryRunResult:
+    result = prepare_source_visuals(
+        brief_path=brief_path,
+        asset_root=asset_root,
+        output_root=output_root,
+        prompt_planner_name=prompt_planner_name,
+        image_provider_name=image_provider_name,
+    )
+    asset_store = AssetStore(asset_root=asset_root, output_root=output_root)
+    renderer = CreativeRenderer()
+
+    for product_plan in result.products:
+        for variant in product_plan.variants:
+            source_visual_path = variant.final_source_visual_path
+            if source_visual_path is None:
+                continue
+            output_dir = asset_store.output_dir_for(result.campaign.campaign_id, variant)
+            variant.rendition_paths = renderer.render_all(result.campaign, source_visual_path, output_dir)
+
+    return result
+
+
 def format_dry_run(result: DryRunResult, output_root: Path | str) -> str:
     lines = [
         f"Campaign: {result.campaign.campaign_id}",
@@ -83,6 +112,8 @@ def format_dry_run(result: DryRunResult, output_root: Path | str) -> str:
             prepared_path = variant.prepared_source_visual_path.as_posix() if variant.prepared_source_visual_path else None
             suffix = f" prepared={prepared_path}" if prepared_path else ""
             lines.append(f"  - {variant.variant_id}: {variant.source.value} input={input_path}{suffix}")
+            for rendition_path in variant.rendition_paths:
+                lines.append(f"    rendition: {rendition_path.as_posix()}")
         for prompt in product_plan.prompts:
             prompt_label = _prompt_label(prompt.prompt_type)
             lines.append(f"    prompt[{prompt.variant_id} {prompt_label}]: {prompt.prompt}")

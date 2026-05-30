@@ -5,7 +5,7 @@ from pathlib import Path
 
 from creative_automation.brief_loader import BriefLoadError
 from creative_automation.generators import ImageGeneratorError
-from creative_automation.pipeline import build_dry_run_result, format_dry_run, prepare_source_visuals
+from creative_automation.pipeline import build_dry_run_result, format_dry_run, run_pipeline
 from creative_automation.prompt_planner import PromptPlannerError
 
 
@@ -35,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
                 show_prompts=args.show_prompts,
             )
         else:
-            result = prepare_source_visuals(
+            result = run_pipeline(
                 args.brief,
                 args.assets,
                 args.out,
