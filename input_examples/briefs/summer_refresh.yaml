@@ -1,0 +1,42 @@
+campaign_id: summer_refresh_2026
+campaign_name: Summer Refresh Launch
+market: US
+language: en
+target_audience: Health-conscious millennials looking for convenient feel-good summer snacks and drinks.
+campaign_message: Refresh your summer with bright, feel-good flavor.
+cta: Shop now
+
+brand:
+  name: Brightside
+  primary_color: "#FFD84D"
+  secondary_color: "#C73659"
+
+visual_direction:
+  setting: sunny outdoor summer scene
+  style: modern social commerce ad photography
+  mood:
+    - fresh
+    - bright
+    - optimistic
+  composition: product-forward with clean negative space for copy
+  negative_space: lower-left
+  avoid:
+    - rendered text
+    - third-party logos
+    - cluttered background
+    - unrealistic product shape
+
+products:
+  - id: sparkling_lemon_water
+    name: Sparkling Lemon Water
+    description: A zero-sugar sparkling water with natural lemon flavor and a bright citrus refreshment benefit.
+    visual_notes: Show condensation, citrus slices, and a refreshing summer feel.
+
+  - id: berry_energy_bar
+    name: Berry Energy Bar
+    description: A plant-based berry and oat energy bar for convenient fuel during busy summer days.
+    visual_notes: Show oats, berries, and an active outdoor snacking occasion.
+
+  - id: tropical_trail_mix
+    name: Tropical Trail Mix
+    description: A portable nut, seed, and dried fruit snack mix with tropical flavor for outdoor summer adventures.
