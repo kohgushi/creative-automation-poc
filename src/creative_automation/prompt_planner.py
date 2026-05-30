@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from creative_automation.models import AssetSource, AssetVariant, CampaignBrief, PlannedPrompt, Product
-from creative_automation.settings import OpenAISettings, load_openai_settings
+from creative_automation.settings import OpenAISettings, SettingsError, load_openai_settings, validate_openai_settings
 
 
 class PromptPlannerError(RuntimeError):
@@ -39,8 +39,10 @@ class OpenAIPromptPlanner(PromptPlanner):
         if variant.source == AssetSource.REUSED_SOURCE_VISUAL:
             return None
 
-        if not self.settings.api_key:
-            raise PromptPlannerError("OPENAI_API_KEY is required for --prompt-planner openai")
+        try:
+            validate_openai_settings(self.settings)
+        except SettingsError as exc:
+            raise PromptPlannerError(str(exc)) from exc
 
         try:
             from openai import OpenAI

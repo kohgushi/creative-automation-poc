@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from creative_automation.settings import OpenAISettings, load_openai_settings
+from creative_automation.settings import OpenAISettings, SettingsError, load_openai_settings, validate_openai_settings
 
 
 class ImageGeneratorError(RuntimeError):
@@ -71,8 +71,10 @@ class OpenAIImageGenerator(ImageGenerator):
         output_path: Path,
         product_asset_path: Path | None = None,
     ) -> Path:
-        if not self.settings.api_key:
-            raise ImageGeneratorError("OPENAI_API_KEY is required for --image-provider openai")
+        try:
+            validate_openai_settings(self.settings, require_image_model=True)
+        except SettingsError as exc:
+            raise ImageGeneratorError(str(exc)) from exc
 
         try:
             from openai import OpenAI
