@@ -97,10 +97,16 @@ class AssetVariant(BaseModel):
     source: AssetSource
     source_visual_path: Path | None = None
     product_asset_path: Path | None = None
+    prepared_source_visual_path: Path | None = None
+    generated_source_visual_path: Path | None = None
 
     @property
     def input_path(self) -> Path | None:
         return self.source_visual_path or self.product_asset_path
+
+    @property
+    def final_source_visual_path(self) -> Path | None:
+        return self.prepared_source_visual_path or self.source_visual_path or self.generated_source_visual_path
 
 
 class PlannedPrompt(BaseModel):

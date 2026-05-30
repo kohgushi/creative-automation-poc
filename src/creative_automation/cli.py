@@ -4,7 +4,8 @@ import argparse
 from pathlib import Path
 
 from creative_automation.brief_loader import BriefLoadError
-from creative_automation.pipeline import build_dry_run_result, format_dry_run
+from creative_automation.generators import ImageGeneratorError
+from creative_automation.pipeline import build_dry_run_result, format_dry_run, prepare_source_visuals
 from creative_automation.prompt_planner import PromptPlannerError
 
 
@@ -24,18 +25,24 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    if not args.dry_run:
-        parser.error("Milestone 1 supports --dry-run only; generation and rendering are implemented later.")
-
     try:
-        result = build_dry_run_result(
-            args.brief,
-            args.assets,
-            args.out,
-            prompt_planner_name=args.prompt_planner,
-            show_prompts=args.show_prompts,
-        )
-    except (BriefLoadError, PromptPlannerError) as exc:
+        if args.dry_run:
+            result = build_dry_run_result(
+                args.brief,
+                args.assets,
+                args.out,
+                prompt_planner_name=args.prompt_planner,
+                show_prompts=args.show_prompts,
+            )
+        else:
+            result = prepare_source_visuals(
+                args.brief,
+                args.assets,
+                args.out,
+                prompt_planner_name=args.prompt_planner,
+                image_provider_name=args.image_provider,
+            )
+    except (BriefLoadError, ImageGeneratorError, PromptPlannerError) as exc:
         parser.error(str(exc))
 
     print(format_dry_run(result, args.out))
