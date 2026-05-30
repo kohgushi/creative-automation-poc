@@ -40,13 +40,16 @@ The minimum implementation must:
 
 The following features are optional and should not block the minimum local pipeline:
 
-- JSON report containing output paths, asset source, generation status, warnings, and validation results.
 - Brand compliance checks such as required element presence and brand color usage.
 - Simple legal checks for prohibited words or risky claims.
 - Localized campaign text beyond English.
 - More advanced prompt templates and visual quality controls.
 - Additional image generation providers beyond OpenAI.
 - Mock-only execution for local development and deterministic tests.
+
+The following optional feature is implemented for demo traceability:
+
+- JSON report containing output paths, asset source, prompt text, warnings, and validation results.
 
 ### 2.3 Non-Goals
 
@@ -56,7 +59,7 @@ The POC will not:
 - Implement approval workflows for brand, legal, or marketing teams.
 - Implement a dashboard or analytics product.
 - Require cloud storage for the default workflow.
-- Require external API credentials for the default local demo path.
+- Require external API credentials for dry-run validation or mock-based local development.
 - Rely on image generation models to render final text.
 
 ## 3. Creative Model
@@ -143,9 +146,9 @@ Optional brand fields:
 
 Brand color usage:
 
-- `primary_color` is the default accent color. It is used for CTA fill and prominent visual accents when a more specific text style is not provided.
-- `secondary_color` is a supporting accent color. It is used for CTA border, contrast panels, overlays, or fallback accents.
-- Explicit values in `text_styles` override brand colors.
+- `primary_color` is campaign metadata for the main brand accent and may be used by future templates or style defaults.
+- `secondary_color` is campaign metadata for a supporting brand accent and may be used by future templates or style defaults.
+- Explicit values in `text_styles` control rendered text colors when provided.
 
 Example:
 
@@ -367,18 +370,17 @@ Required final creative sizes:
 | `9:16` | `9x16.png` | `1080x1920` |
 | `16:9` | `16x9.png` | `1920x1080` |
 
-### 5.3 Optional Report
+### 5.3 Report
 
-If implemented, the optional report is written to:
+When `--report` is provided, the report is written to:
 
 ```text
 outputs/<campaign_id>/report.json
 ```
 
-The report may include:
+The report includes:
 
 - Campaign id.
-- Input brief path.
 - Product ids.
 - Asset variant ids.
 - Asset source: `reused_source_visual`, `generated_from_product_asset`, or `generated_from_text`.
@@ -398,7 +400,7 @@ The report may include:
 5. Render final creatives for each configured aspect ratio.
 6. Save final creatives to the product and asset variant output folder.
 7. Optionally run validation checks.
-8. Optionally write `report.json`.
+8. Write `report.json` when `--report` is provided.
 9. Print concise execution results to the console.
 
 ## 7. Rendering and Generation Strategy
@@ -467,12 +469,13 @@ The renderer should preserve safe margins and keep text readable with overlays, 
 Target command:
 
 ```bash
-uv run python main.py \
+.venv/bin/python main.py \
   --brief input_examples/briefs/summer_refresh.yaml \
   --assets input_examples/assets \
   --out outputs \
   --prompt-planner openai \
-  --image-provider openai
+  --image-provider openai \
+  --report
 ```
 
 Arguments:
@@ -486,7 +489,10 @@ Arguments:
 Future optional arguments may include:
 
 - `--max-assets-per-product`: limit asset expansion for compact demos.
-- `--report`: write optional JSON report.
+
+Implemented optional arguments:
+
+- `--report`: write `outputs/<campaign_id>/report.json`.
 
 ## 9. Module Boundaries
 
@@ -502,8 +508,11 @@ Minimum viable modules:
 
 Optional modules:
 
-- `src/creative_automation/reporter.py`: JSON report generation.
 - `src/creative_automation/compliance.py`: brand and legal checks.
+
+Implemented supporting modules:
+
+- `src/creative_automation/reporter.py`: JSON report generation.
 
 `main.py` should stay thin and call the package CLI.
 

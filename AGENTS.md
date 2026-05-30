@@ -93,8 +93,11 @@ Core modules:
 
 Optional modules:
 
-- `reporter.py`: JSON report generation.
 - `compliance.py`: brand and legal checks.
+
+Implemented supporting modules:
+
+- `reporter.py`: JSON report generation.
 
 Dependency direction:
 
@@ -129,12 +132,13 @@ Make the question specific and include the tradeoff. Do not ask for routine low-
 Target final command:
 
 ```bash
-uv run python main.py \
+.venv/bin/python main.py \
   --brief input_examples/briefs/summer_refresh.yaml \
   --assets input_examples/assets \
   --out outputs \
   --prompt-planner openai \
-  --image-provider openai
+  --image-provider openai \
+  --report
 ```
 
 Development and test paths may support `--prompt-planner rule-based` and `--image-provider mock`, but OpenAI-backed execution is required for final submission.
@@ -191,4 +195,4 @@ Add focused tests where they provide useful confidence:
 - Prompt planning behavior.
 - Output path organization.
 - Renderer output behavior.
-- Optional report generation if implemented.
+- Report generation.
