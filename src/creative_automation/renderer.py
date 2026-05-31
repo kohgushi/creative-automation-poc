@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from creative_automation.models import CampaignBrief
+from creative_automation.models import CampaignBrief, LocalizedCreativeText
 
 
 @dataclass(frozen=True)
@@ -23,6 +23,10 @@ class AspectRatioTemplate:
     @property
     def source_visual_filename(self) -> str:
         return f"{self.filename.removesuffix('.png')}_source_visual.png"
+
+    def rendition_filename(self, locale: str | None = None) -> str:
+        stem = self.filename.removesuffix(".png")
+        return f"{stem}_{locale}.png" if locale else self.filename
 
 
 TEMPLATES = {
@@ -67,9 +71,15 @@ class RendererError(RuntimeError):
 
 
 class CreativeRenderer:
-    def render_all(self, campaign: CampaignBrief, source_visual_path: Path, output_dir: Path) -> list[Path]:
+    def render_all(
+        self,
+        campaign: CampaignBrief,
+        source_visual_path: Path,
+        output_dir: Path,
+        localized_text: LocalizedCreativeText | None = None,
+    ) -> list[Path]:
         return [
-            self.render(campaign, source_visual_path, output_dir, template)
+            self.render(campaign, source_visual_path, output_dir, template, localized_text=localized_text)
             for template in TEMPLATES.values()
         ]
 
@@ -79,6 +89,7 @@ class CreativeRenderer:
         source_visual_path: Path,
         output_dir: Path,
         template: AspectRatioTemplate,
+        localized_text: LocalizedCreativeText | None = None,
     ) -> Path:
         if not source_visual_path.exists():
             raise RendererError(f"Source visual not found: {source_visual_path}")
@@ -90,11 +101,12 @@ class CreativeRenderer:
 
         _draw_readability_gradient(draw, template.size)
         _draw_text_logo(draw, campaign, template)
-        _draw_campaign_message(draw, campaign, template)
-        _draw_cta(draw, campaign, template)
+        _draw_campaign_message(draw, campaign, template, localized_text)
+        _draw_cta(draw, campaign, template, localized_text)
 
         final = Image.alpha_composite(canvas, overlay).convert("RGB")
-        output_path = output_dir / template.filename
+        locale = localized_text.locale if localized_text else None
+        output_path = output_dir / template.rendition_filename(locale)
         final.save(output_path)
         return output_path
 
@@ -159,10 +171,16 @@ def _draw_text_logo(draw: ImageDraw.ImageDraw, campaign: CampaignBrief, template
     draw.text((box[0], box[1]), campaign.brand.name.upper(), font=font, fill=_text_color(campaign, "logo"))
 
 
-def _draw_campaign_message(draw: ImageDraw.ImageDraw, campaign: CampaignBrief, template: AspectRatioTemplate) -> None:
+def _draw_campaign_message(
+    draw: ImageDraw.ImageDraw,
+    campaign: CampaignBrief,
+    template: AspectRatioTemplate,
+    localized_text: LocalizedCreativeText | None,
+) -> None:
     box = _box_pixels(template.message_box, template.size)
-    font = _font_for_box(campaign.campaign_message, box, template.message_size_scale, bold=True)
-    lines = _wrap_text(draw, campaign.campaign_message.upper(), font, box[2] - box[0])
+    message = localized_text.campaign_message if localized_text else campaign.campaign_message
+    font = _font_for_box(message, box, template.message_size_scale, bold=True)
+    lines = _wrap_text(draw, message.upper(), font, box[2] - box[0])
     line_height = round(font.size * 1.08)
     total_height = line_height * len(lines)
     y = max(box[1], box[3] - total_height)
@@ -171,10 +189,16 @@ def _draw_campaign_message(draw: ImageDraw.ImageDraw, campaign: CampaignBrief, t
         y += line_height
 
 
-def _draw_cta(draw: ImageDraw.ImageDraw, campaign: CampaignBrief, template: AspectRatioTemplate) -> None:
+def _draw_cta(
+    draw: ImageDraw.ImageDraw,
+    campaign: CampaignBrief,
+    template: AspectRatioTemplate,
+    localized_text: LocalizedCreativeText | None,
+) -> None:
     box = _box_pixels(template.cta_box, template.size)
-    font = _font_for_box(campaign.cta, box, template.cta_size_scale, bold=True)
-    text = campaign.cta.upper()
+    cta = localized_text.cta if localized_text else campaign.cta
+    font = _font_for_box(cta, box, template.cta_size_scale, bold=True)
+    text = cta.upper()
     text_bbox = draw.textbbox((0, 0), text, font=font)
     text_width = text_bbox[2] - text_bbox[0]
     text_height = text_bbox[3] - text_bbox[1]
@@ -226,42 +250,87 @@ def _font_for_box(text: str, box: tuple[int, int, int, int], size_scale: float, 
     max_size = max(14, round((box[2] - box[0]) * size_scale))
     min_size = 18
     for size in range(max_size, min_size - 1, -2):
-        font = _load_font(size, bold=bold)
+        font = _load_font(size, bold=bold, text=text)
         probe = Image.new("RGB", (10, 10))
         draw = ImageDraw.Draw(probe)
         lines = _wrap_text(draw, text.upper(), font, box[2] - box[0])
         line_height = round(font.size * 1.08)
         if line_height * len(lines) <= box[3] - box[1]:
             return font
-    return _load_font(min_size, bold=bold)
+    return _load_font(min_size, bold=bold, text=text)
 
 
-def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
-    candidates = [
-        "/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Arial.ttf",
+def _load_font(size: int, bold: bool = False, text: str = "") -> ImageFont.FreeTypeFont:
+    latin_candidates = [
+        "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+        if bold
+        else "/System/Library/Fonts/Supplemental/Arial.ttf",
         "/Library/Fonts/Arial Bold.ttf" if bold else "/Library/Fonts/Arial.ttf",
-        "/System/Library/Fonts/Supplemental/Helvetica Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Helvetica.ttf",
+        "/System/Library/Fonts/Supplemental/Helvetica Bold.ttf"
+        if bold
+        else "/System/Library/Fonts/Supplemental/Helvetica.ttf",
     ]
+    multilingual_candidates = [
+        "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+        "/Library/Fonts/Arial Unicode.ttf",
+        "/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc" if bold else "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
+        "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+        "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
+    ]
+    candidates = multilingual_candidates + latin_candidates if _needs_multilingual_font(text) else latin_candidates + multilingual_candidates
     for path in candidates:
         if Path(path).exists():
             return ImageFont.truetype(path, size)
     return ImageFont.load_default(size=size)
 
 
+def _needs_multilingual_font(text: str) -> bool:
+    return any(ord(character) > 127 for character in text)
+
+
 def _wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, max_width: int) -> list[str]:
+    if _needs_character_wrap(text):
+        return _wrap_text_by_character(draw, text, font, max_width)
+
     words = text.split()
     lines: list[str] = []
     current = ""
     for word in words:
         candidate = f"{current} {word}".strip()
-        if draw.textlength(candidate, font=font) <= max_width or not current:
+        if draw.textlength(candidate, font=font) <= max_width:
             current = candidate
+        elif not current:
+            lines.extend(_wrap_text_by_character(draw, word, font, max_width))
         else:
             lines.append(current)
             current = word
     if current:
         lines.append(current)
     return lines
+
+
+def _wrap_text_by_character(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    font: ImageFont.ImageFont,
+    max_width: int,
+) -> list[str]:
+    lines: list[str] = []
+    current = ""
+    for character in text:
+        candidate = f"{current}{character}"
+        if draw.textlength(candidate, font=font) <= max_width or not current:
+            current = candidate
+        else:
+            lines.append(current)
+            current = character
+    if current:
+        lines.append(current)
+    return lines
+
+
+def _needs_character_wrap(text: str) -> bool:
+    return bool(text) and " " not in text and _needs_multilingual_font(text)
 
 
 def _text_color(campaign: CampaignBrief, style_name: str) -> str:

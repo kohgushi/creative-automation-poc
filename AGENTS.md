@@ -138,6 +138,7 @@ Target final command:
   --out outputs \
   --prompt-planner openai \
   --image-provider openai \
+  --localizer openai \
   --adapt-source-visuals \
   --report
 ```

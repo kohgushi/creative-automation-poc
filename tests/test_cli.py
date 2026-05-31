@@ -64,6 +64,8 @@ def test_cli_prepares_source_visuals_with_mock_generator(tmp_path, capsys) -> No
             "rule-based",
             "--image-provider",
             "mock",
+            "--localizer",
+            "rule-based",
         ]
     )
 
@@ -95,6 +97,8 @@ def test_cli_writes_report_when_requested(tmp_path, capsys) -> None:
             "rule-based",
             "--image-provider",
             "mock",
+            "--localizer",
+            "rule-based",
             "--report",
         ]
     )
@@ -119,6 +123,8 @@ def test_cli_adapts_source_visuals_when_requested(tmp_path, capsys) -> None:
             "rule-based",
             "--image-provider",
             "mock",
+            "--localizer",
+            "rule-based",
             "--adapt-source-visuals",
         ]
     )

@@ -5,6 +5,7 @@ from pathlib import Path
 from creative_automation.asset_store import AssetStore
 from creative_automation.brief_loader import load_campaign_brief
 from creative_automation.generators import get_image_generator
+from creative_automation.localization import get_localizer
 from creative_automation.models import AssetSource
 from creative_automation.models import DryRunResult
 from creative_automation.prompt_planner import get_prompt_planner
@@ -76,6 +77,7 @@ def run_pipeline(
     output_root: Path | str,
     prompt_planner_name: str,
     image_provider_name: str,
+    localizer_name: str = "openai",
     adapt_source_visuals: bool = False,
 ) -> DryRunResult:
     result = prepare_source_visuals(
@@ -88,6 +90,7 @@ def run_pipeline(
     asset_store = AssetStore(asset_root=asset_root, output_root=output_root)
     renderer = CreativeRenderer()
     image_generator = get_image_generator(image_provider_name)
+    result.localized_texts = get_localizer(localizer_name).localize(result.campaign)
 
     for product_plan in result.products:
         for variant in product_plan.variants:
@@ -106,9 +109,16 @@ def run_pipeline(
             for spec in adaptation_specs():
                 ratio = str(spec["ratio"])
                 render_source = variant.adapted_source_visual_paths.get(ratio, source_visual_path)
-                variant.rendition_paths.append(
-                    renderer.render(result.campaign, render_source, output_dir, template_for_ratio(ratio))
-                )
+                for localized_text in result.localized_texts.values():
+                    variant.rendition_paths.append(
+                        renderer.render(
+                            result.campaign,
+                            render_source,
+                            output_dir,
+                            template_for_ratio(ratio),
+                            localized_text=localized_text,
+                        )
+                    )
 
     return result
 

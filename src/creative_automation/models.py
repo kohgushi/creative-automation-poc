@@ -65,6 +65,7 @@ class CampaignBrief(BaseModel):
     products: list[Product] = Field(min_length=2)
     campaign_name: str | None = None
     language: str = "en"
+    locales: list[str] = Field(default_factory=lambda: ["en"], min_length=1)
     visual_direction: dict[str, Any] = Field(default_factory=dict)
     text_styles: dict[str, Any] = Field(default_factory=dict)
 
@@ -80,6 +81,19 @@ class CampaignBrief(BaseModel):
     @classmethod
     def require_required_text(cls, value: str) -> str:
         return _non_empty(value, "required text field")
+
+    @field_validator("locales")
+    @classmethod
+    def validate_locales(cls, value: list[str]) -> list[str]:
+        normalized = []
+        for locale in value:
+            cleaned = _non_empty(locale, "locale").lower()
+            if not cleaned.replace("-", "").isalnum():
+                raise ValueError("locales must contain only letters, numbers, or hyphens")
+            normalized.append(cleaned)
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("locales must be unique")
+        return normalized
 
     @model_validator(mode="after")
     def require_unique_product_ids(self) -> CampaignBrief:
@@ -119,6 +133,12 @@ class PlannedPrompt(BaseModel):
     prompt: str
 
 
+class LocalizedCreativeText(BaseModel):
+    locale: str
+    campaign_message: str
+    cta: str
+
+
 class ProductAssetPlan(BaseModel):
     product: Product
     variants: list[AssetVariant]
@@ -128,6 +148,7 @@ class ProductAssetPlan(BaseModel):
 class DryRunResult(BaseModel):
     campaign: CampaignBrief
     products: list[ProductAssetPlan]
+    localized_texts: dict[str, LocalizedCreativeText] = Field(default_factory=dict)
 
 
 def _non_empty(value: str, field_name: str) -> str:

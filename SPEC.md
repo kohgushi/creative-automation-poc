@@ -51,6 +51,7 @@ The following optional feature is implemented for demo traceability:
 
 - JSON report containing output paths, asset source, prompt text, warnings, and validation results.
 - Aspect-aware source visual adaptation for each final aspect ratio.
+- LLM-backed localization for campaign message and CTA.
 
 ### 2.3 Non-Goals
 
@@ -76,6 +77,7 @@ The POC will not:
 - `Rendition`: one final creative exported for a specific aspect ratio.
 - `Prompt planner`: an LLM-backed component that turns campaign, product, visual direction, and asset context into image-generation prompts.
 - `Aspect-aware source visual`: a source visual adapted for one final aspect ratio before text overlay.
+- `Localized creative text`: the campaign message and CTA translated or adapted for one output locale.
 
 ### 3.2 Expansion Model
 
@@ -86,13 +88,14 @@ campaign
   x products
   x asset variants
   x aspect ratios
+  x locales
   = final creative renditions
 ```
 
 For example:
 
 ```text
-1 campaign x 2 products x 2 asset variants x 3 aspect ratios = 12 final creatives
+1 campaign x 2 products x 2 asset variants x 3 aspect ratios x 2 locales = 24 final creatives
 ```
 
 ### 3.3 Final Creative Composition
@@ -132,6 +135,7 @@ Optional root fields:
 
 - `campaign_name`: human-readable campaign name.
 - `language`: campaign language. Defaults to `en` if omitted.
+- `locales`: output locale list. Defaults to `["en"]` if omitted.
 - `visual_direction`: campaign-level visual guidance for source visual generation.
 - `text_styles`: rendering configuration for text logo, campaign message, and CTA.
 
@@ -249,6 +253,9 @@ campaign_id: summer_refresh_2026
 campaign_name: Summer Refresh Launch
 market: US
 language: en
+locales:
+  - en
+  - ja
 target_audience: Health-conscious millennials
 campaign_message: Refresh your summer with bright, feel-good flavor.
 cta: Shop now
@@ -356,6 +363,12 @@ outputs/<campaign_id>/
       1x1.png
       9x16.png
       16x9.png
+      1x1_en.png
+      1x1_ja.png
+      9x16_en.png
+      9x16_ja.png
+      16x9_en.png
+      16x9_ja.png
 ```
 
 Notes:
@@ -364,6 +377,7 @@ Notes:
 - `generated_source_visual.png` is created only when the pipeline generates a source visual.
 - `<ratio>_source_visual.png` is created when aspect-aware source visual adaptation is enabled.
 - Final creative filenames use stable ratio names: `1x1.png`, `9x16.png`, and `16x9.png`.
+- When localization is enabled, final creative filenames include the locale: `1x1_en.png`, `1x1_ja.png`, `9x16_en.png`, etc.
 - `outputs/` is runtime-generated and should generally be ignored by git.
 
 ### 5.2 Aspect Ratios
@@ -391,6 +405,7 @@ The report includes:
 - Asset variant ids.
 - Asset source: `reused_source_visual`, `generated_from_product_asset`, or `generated_from_text`.
 - Generated prompt text, if available.
+- Localized campaign message and CTA text.
 - Final creative output paths.
 - Warnings and validation results.
 
@@ -404,11 +419,12 @@ The report includes:
    - Otherwise generate a source visual from a product asset.
    - Otherwise generate a source visual from product text and campaign context.
 5. If enabled, adapt each source visual for each configured aspect ratio using image generation.
-6. Render final creatives for each configured aspect ratio.
-7. Save final creatives to the product and asset variant output folder.
-8. Optionally run validation checks.
-9. Write `report.json` when `--report` is provided.
-10. Print concise execution results to the console.
+6. Localize campaign message and CTA for each configured locale.
+7. Render final creatives for each configured aspect ratio and locale.
+8. Save final creatives to the product and asset variant output folder.
+9. Optionally run validation checks.
+10. Write `report.json` when `--report` is provided.
+11. Print concise execution results to the console.
 
 ## 7. Rendering and Generation Strategy
 
@@ -495,6 +511,26 @@ Phase 1 uses fixed templates per aspect ratio:
 
 The renderer should preserve safe margins and keep text readable with overlays, shadows, or contrast panels when needed.
 
+### 7.7 LLM Localization
+
+The source campaign language is assumed to be English.
+
+When multiple output locales are configured, the pipeline uses an LLM localizer to create localized campaign message and CTA text. The `en` locale uses the original English `campaign_message` and `cta` without an LLM call.
+
+Localized text is used only by the deterministic renderer. Image generation prompts and source visual adaptation remain based on the source brief.
+
+Final creative filenames include locale codes so demos can show language variants together:
+
+```text
+outputs/<campaign_id>/<product_id>/<asset_variant_id>/
+  1x1_en.png
+  1x1_ja.png
+  9x16_en.png
+  9x16_ja.png
+  16x9_en.png
+  16x9_ja.png
+```
+
 ## 8. CLI Contract
 
 Target command:
@@ -506,6 +542,7 @@ Target command:
   --out outputs \
   --prompt-planner openai \
   --image-provider openai \
+  --localizer openai \
   --adapt-source-visuals \
   --report
 ```
@@ -517,6 +554,7 @@ Arguments:
 - `--out`: path to output root.
 - `--prompt-planner`: prompt planner provider name. Final POC supports `openai`; local development may support `rule-based`.
 - `--image-provider`: image generation provider name. Final POC supports `openai`; local development may support `mock`.
+- `--localizer`: localization provider name. Final POC supports `openai`; local development may support `rule-based`.
 - `--adapt-source-visuals`: generate aspect-ratio-specific source visuals before final text rendering.
 
 Future optional arguments may include:
@@ -536,6 +574,7 @@ Minimum viable modules:
 - `src/creative_automation/brief_loader.py`: YAML loading.
 - `src/creative_automation/asset_store.py`: asset discovery and output path management.
 - `src/creative_automation/prompt_planner.py`: prompt planner interface, OpenAI LLM planner, and optional rule-based development planner.
+- `src/creative_automation/localization.py`: localization interface, OpenAI LLM localizer, and optional rule-based development localizer.
 - `src/creative_automation/generators.py`: image generation provider interface, OpenAI image generator, and optional mock generator.
 - `src/creative_automation/renderer.py`: Pillow final creative rendering.
 

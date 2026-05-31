@@ -44,6 +44,7 @@ def _report_payload(result: DryRunResult) -> dict[str, Any]:
                         ratio: _path_or_none(path) for ratio, path in variant.adapted_source_visual_paths.items()
                     },
                     "rendition_paths": [_path_or_none(path) for path in variant.rendition_paths],
+                    "rendition_paths_by_locale": _rendition_paths_by_locale(variant.rendition_paths),
                     "warnings": variant.warnings,
                     "prompt": prompt_by_variant.get(variant.variant_id),
                 }
@@ -64,6 +65,13 @@ def _report_payload(result: DryRunResult) -> dict[str, Any]:
         "target_audience": result.campaign.target_audience,
         "campaign_message": result.campaign.campaign_message,
         "cta": result.campaign.cta,
+        "localized_texts": {
+            locale: {
+                "campaign_message": localized.campaign_message,
+                "cta": localized.cta,
+            }
+            for locale, localized in result.localized_texts.items()
+        },
         "brand": {"name": result.campaign.brand.name},
         "products": products,
         "warnings": warnings,
@@ -77,3 +85,17 @@ def _report_payload(result: DryRunResult) -> dict[str, Any]:
 
 def _path_or_none(path: Path | None) -> str | None:
     return path.as_posix() if path else None
+
+
+def _rendition_paths_by_locale(paths: list[Path]) -> dict[str, list[str]]:
+    grouped: dict[str, list[str]] = {}
+    for path in paths:
+        locale = _locale_from_rendition_name(path.name)
+        grouped.setdefault(locale, []).append(path.as_posix())
+    return grouped
+
+
+def _locale_from_rendition_name(filename: str) -> str:
+    stem = filename.removesuffix(".png")
+    parts = stem.split("_")
+    return parts[-1] if len(parts) > 1 else "default"

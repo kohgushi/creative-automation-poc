@@ -267,3 +267,50 @@ Out of Scope:
 - Localization.
 - Legal review.
 - Object detection or segmentation-based smart crop.
+
+## Milestone 8: LLM Localization
+
+Goal:
+
+Generate locale-specific final creatives by localizing campaign message and CTA text with an LLM.
+
+Modules:
+
+- `src/creative_automation/models.py`
+- `src/creative_automation/localization.py`
+- `src/creative_automation/renderer.py`
+- `src/creative_automation/pipeline.py`
+- `src/creative_automation/reporter.py`
+- CLI integration
+- Focused tests
+
+Scope:
+
+- Add `locales` to campaign briefs, defaulting to `["en"]`.
+- Assume the source campaign language is English.
+- Implement a localization provider interface.
+- Implement a rule-based localizer for deterministic tests.
+- Implement an OpenAI-backed localizer for final execution.
+- Localize `campaign_message` and `cta`; keep `en` as the original text.
+- Render final creative filenames with locale suffixes:
+  - `1x1_en.png`
+  - `1x1_ja.png`
+  - `9x16_en.png`
+  - `9x16_ja.png`
+  - `16x9_en.png`
+  - `16x9_ja.png`
+- Record localized text and locale-specific rendition paths in `report.json`.
+
+Completion Criteria:
+
+- A brief with `locales: ["en", "ja"]` produces English and Japanese final creatives.
+- Rule-based localization works without API calls in tests.
+- OpenAI localization can be selected by CLI.
+- Report includes localized text.
+- Tests pass.
+
+Out of Scope:
+
+- Image prompt localization.
+- Source visual localization.
+- Legal review of localized claims.

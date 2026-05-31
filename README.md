@@ -17,6 +17,7 @@ The final POC is expected to use OpenAI for:
 - LLM-based image prompt planning.
 - Image generation for missing source visuals.
 - Aspect-aware source visual adaptation before final rendering.
+- LLM-based localization of campaign message and CTA text.
 
 Text placement is handled by a deterministic rendering layer so the logo, campaign message, and CTA remain accurate and reviewable.
 
@@ -75,6 +76,7 @@ Run the full OpenAI-backed pipeline:
   --out outputs \
   --prompt-planner openai \
   --image-provider openai \
+  --localizer openai \
   --adapt-source-visuals \
   --report
 ```
@@ -105,34 +107,46 @@ outputs/summer_refresh_2026/
       1x1_source_visual.png
       9x16_source_visual.png
       16x9_source_visual.png
-      1x1.png
-      9x16.png
-      16x9.png
+      1x1_en.png
+      1x1_ja.png
+      9x16_en.png
+      9x16_ja.png
+      16x9_en.png
+      16x9_ja.png
   citrus_craft_soda/
     source_citrus_craft_soda_source_visual/
       1x1_source_visual.png
       9x16_source_visual.png
       16x9_source_visual.png
-      1x1.png
-      9x16.png
-      16x9.png
+      1x1_en.png
+      1x1_ja.png
+      9x16_en.png
+      9x16_ja.png
+      16x9_en.png
+      16x9_ja.png
     product_citrus_craft_soda_product/
       generated_source_visual.png
       1x1_source_visual.png
       9x16_source_visual.png
       16x9_source_visual.png
-      1x1.png
-      9x16.png
-      16x9.png
+      1x1_en.png
+      1x1_ja.png
+      9x16_en.png
+      9x16_ja.png
+      16x9_en.png
+      16x9_ja.png
   peach_black_iced_tea/
     product_peach_black_iced_tea_product/
       generated_source_visual.png
       1x1_source_visual.png
       9x16_source_visual.png
       16x9_source_visual.png
-      1x1.png
-      9x16.png
-      16x9.png
+      1x1_en.png
+      1x1_ja.png
+      9x16_en.png
+      9x16_ja.png
+      16x9_en.png
+      16x9_ja.png
 ```
 
 ## Design Decisions
@@ -141,6 +155,7 @@ outputs/summer_refresh_2026/
 - Product assets are converted into source visuals through image generation.
 - Products without assets are generated from the product description and campaign context.
 - Source visuals can be adapted per aspect ratio so products are less likely to be cut off by final crops.
+- Final creative filenames include locale codes so language variants are easy to review side by side.
 - OpenAI is the concrete LLM and image generation provider for this POC.
 - Text logo, campaign message, and CTA are rendered deterministically with Pillow instead of relying on image generation models to render text.
 - The renderer uses fixed aspect-ratio templates for reliable `1:1`, `9:16`, and `16:9` outputs.

@@ -2,6 +2,9 @@ campaign_id: summer_refresh_2026
 campaign_name: Summer Refresh Launch
 market: US
 language: en
+locales:
+  - en
+  - ja
 target_audience: Young adults who want refreshing, flavorful drinks for active summer days, outdoor hangouts, and weekend adventures.
 campaign_message: Refresh your summer with bright, feel-good flavor.
 cta: Shop now
