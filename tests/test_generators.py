@@ -20,7 +20,7 @@ def test_mock_generator_writes_source_visual(tmp_path: Path) -> None:
 
 
 def test_mock_generator_uses_product_asset(tmp_path: Path) -> None:
-    product_asset = Path("input_examples/assets/products/berry_energy_bar/product_assets/wrapper_front.png")
+    product_asset = Path("input_examples/assets/products/peach_black_iced_tea/product_assets/peach_black_iced_tea_product.png")
     output_path = tmp_path / "generated_source_visual.png"
 
     MockImageGenerator().generate_source_visual(

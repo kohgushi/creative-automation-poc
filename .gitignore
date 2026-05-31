@@ -13,6 +13,7 @@ wheels/
 
 # Tool caches
 .uv-cache/
+.DS_Store
 
 # Local secrets
 .env

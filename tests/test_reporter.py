@@ -19,7 +19,7 @@ def test_write_report_for_pipeline_result(tmp_path: Path) -> None:
 
     assert payload["campaign_id"] == "summer_refresh_2026"
     assert payload["validation_results"]["product_count"] == 3
-    assert payload["validation_results"]["final_creatives_rendered"] == 9
+    assert payload["validation_results"]["final_creatives_rendered"] == 12
     assert payload["products"][0]["variants"][0]["rendition_paths"]
 
 

@@ -10,7 +10,7 @@ from creative_automation.prompt_planner import PromptPlannerError, RuleBasedProm
 
 def test_rule_based_prompt_for_product_asset_variant() -> None:
     campaign = load_campaign_brief(Path("input_examples/briefs/summer_refresh.yaml"))
-    product_plan = _plan_for_product("berry_energy_bar")
+    product_plan = _plan_for_product("peach_black_iced_tea")
     variant = product_plan.variants[0]
     planner = RuleBasedPromptPlanner()
 
@@ -19,7 +19,7 @@ def test_rule_based_prompt_for_product_asset_variant() -> None:
     assert planned is not None
     assert planned.prompt_type == AssetSource.GENERATED_FROM_PRODUCT_ASSET
     assert "Transform the provided product asset" in planned.prompt
-    assert "Berry Energy Bar" in planned.prompt
+    assert "Peach Black Iced Tea" in planned.prompt
     assert "clean negative space" in planned.prompt
     assert "Do not render text" in planned.prompt
     assert "third-party brands" in planned.prompt
@@ -27,7 +27,7 @@ def test_rule_based_prompt_for_product_asset_variant() -> None:
 
 def test_rule_based_prompt_for_text_variant() -> None:
     campaign = load_campaign_brief(Path("input_examples/briefs/summer_refresh.yaml"))
-    product_plan = _plan_for_product("tropical_trail_mix")
+    product_plan = _plan_for_product("sparkling_lemon_water")
     variant = product_plan.variants[0]
     planner = RuleBasedPromptPlanner()
 
@@ -36,14 +36,14 @@ def test_rule_based_prompt_for_text_variant() -> None:
     assert planned is not None
     assert planned.prompt_type == AssetSource.GENERATED_FROM_TEXT
     assert "Create a campaign-ready source visual from the product description" in planned.prompt
-    assert "Tropical Trail Mix" in planned.prompt
+    assert "Sparkling Lemon Water" in planned.prompt
     assert "sunny outdoor summer scene" in planned.prompt
     assert "Do not render text" in planned.prompt
 
 
 def test_rule_based_prompt_skips_reused_source_visual() -> None:
     campaign = load_campaign_brief(Path("input_examples/briefs/summer_refresh.yaml"))
-    product_plan = _plan_for_product("sparkling_lemon_water")
+    product_plan = _plan_for_product("citrus_craft_soda")
     variant = product_plan.variants[0]
     planner = RuleBasedPromptPlanner()
 

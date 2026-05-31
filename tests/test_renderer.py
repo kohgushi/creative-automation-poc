@@ -8,7 +8,9 @@ from creative_automation.renderer import CreativeRenderer, TEMPLATES
 
 def test_renderer_outputs_required_dimensions(tmp_path: Path) -> None:
     campaign = load_campaign_brief(Path("input_examples/briefs/summer_refresh.yaml"))
-    source_visual = Path("input_examples/assets/products/sparkling_lemon_water/source_visuals/poolside_can.png")
+    source_visual = Path(
+        "input_examples/assets/products/citrus_craft_soda/source_visuals/citrus_craft_soda_source_visual.png"
+    )
 
     output_paths = CreativeRenderer().render_all(campaign, source_visual, tmp_path)
 

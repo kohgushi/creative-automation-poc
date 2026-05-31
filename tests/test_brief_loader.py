@@ -13,8 +13,8 @@ def test_load_sample_brief() -> None:
     assert len(brief.products) == 3
     assert {product.id for product in brief.products} == {
         "sparkling_lemon_water",
-        "berry_energy_bar",
-        "tropical_trail_mix",
+        "citrus_craft_soda",
+        "peach_black_iced_tea",
     }
 
 

@@ -23,8 +23,8 @@ def test_run_pipeline_renders_final_creatives_with_mock_generator(tmp_path: Path
     sample = (
         tmp_path
         / "summer_refresh_2026"
-        / "berry_energy_bar"
-        / "product_wrapper_front"
+        / "citrus_craft_soda"
+        / "source_citrus_craft_soda_source_visual"
         / "1x1.png"
     )
     with Image.open(sample) as image:

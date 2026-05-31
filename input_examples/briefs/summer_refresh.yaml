@@ -2,7 +2,7 @@ campaign_id: summer_refresh_2026
 campaign_name: Summer Refresh Launch
 market: US
 language: en
-target_audience: Health-conscious millennials looking for convenient feel-good summer snacks and drinks.
+target_audience: Young adults who want refreshing, flavorful drinks for active summer days, outdoor hangouts, and weekend adventures.
 campaign_message: Refresh your summer with bright, feel-good flavor.
 cta: Shop now
 
@@ -32,11 +32,17 @@ products:
     description: A zero-sugar sparkling water with natural lemon flavor and a bright citrus refreshment benefit.
     visual_notes: Show condensation, citrus slices, and a refreshing summer feel.
 
-  - id: berry_energy_bar
-    name: Berry Energy Bar
-    description: A plant-based berry and oat energy bar for convenient fuel during busy summer days.
-    visual_notes: Show oats, berries, and an active outdoor snacking occasion.
+  - id: citrus_craft_soda
+    name: Citrus Craft Soda
+    description: A small-batch sparkling soda with bright citrus flavor, real fruit notes, and a crisp refreshing finish for hot summer afternoons.
+    visual_notes: Show a chilled craft soda can or bottle with condensation, sliced oranges and lemons, ice, and a sunny outdoor table setting.
 
-  - id: tropical_trail_mix
-    name: Tropical Trail Mix
-    description: A portable nut, seed, and dried fruit snack mix with tropical flavor for outdoor summer adventures.
+  - id: peach_black_iced_tea
+    name: Peach Black Iced Tea
+    description: A lightly sweetened black iced tea with ripe peach flavor and a smooth, refreshing taste for relaxed summer moments.
+    visual_notes: Show a chilled iced tea bottle or can with peach slices, ice cubes, golden sunlight, and a relaxed patio or poolside summer setting.
+
+  # - id: tropical_energy_spark
+  #   name: Tropical Energy Spark
+  #   description: A tropical fruit energy drink with pineapple and mango flavor, a clean sparkling lift, and a refreshing boost for active summer days.
+  #   visual_notes: Show a chilled energy drink can with condensation, pineapple and mango pieces, bright tropical colors, and an active outdoor summer setting.

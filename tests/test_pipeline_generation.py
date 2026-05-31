@@ -17,24 +17,29 @@ def test_prepare_source_visuals_with_mock_generator(tmp_path: Path) -> None:
     plans = {plan.product.id: plan for plan in result.products}
 
     sparkling = plans["sparkling_lemon_water"].variants[0]
-    assert sparkling.prepared_source_visual_path == Path(
-        "input_examples/assets/products/sparkling_lemon_water/source_visuals/poolside_can.png"
+    assert sparkling.generated_source_visual_path == (
+        tmp_path / "summer_refresh_2026" / "sparkling_lemon_water" / "text_generated" / "generated_source_visual.png"
     )
+    assert sparkling.generated_source_visual_path.exists()
 
-    berry = plans["berry_energy_bar"].variants[0]
-    assert berry.generated_source_visual_path == (
-        tmp_path / "summer_refresh_2026" / "berry_energy_bar" / "product_wrapper_front" / "generated_source_visual.png"
+    citrus_source, citrus_product = plans["citrus_craft_soda"].variants
+    assert citrus_source.prepared_source_visual_path == Path(
+        "input_examples/assets/products/citrus_craft_soda/source_visuals/citrus_craft_soda_source_visual.png"
     )
-    assert berry.generated_source_visual_path.exists()
-
-    trail = plans["tropical_trail_mix"].variants[0]
-    assert trail.generated_source_visual_path == (
-        tmp_path / "summer_refresh_2026" / "tropical_trail_mix" / "text_generated" / "generated_source_visual.png"
+    assert citrus_product.generated_source_visual_path == (
+        tmp_path / "summer_refresh_2026" / "citrus_craft_soda" / "product_citrus_craft_soda_product" / "generated_source_visual.png"
     )
-    assert trail.generated_source_visual_path.exists()
+    assert citrus_product.generated_source_visual_path.exists()
 
-    with Image.open(berry.generated_source_visual_path) as image:
+    tea = plans["peach_black_iced_tea"].variants[0]
+    assert tea.generated_source_visual_path == (
+        tmp_path / "summer_refresh_2026" / "peach_black_iced_tea" / "product_peach_black_iced_tea_product" / "generated_source_visual.png"
+    )
+    assert tea.generated_source_visual_path.exists()
+
+    with Image.open(citrus_product.generated_source_visual_path) as image:
         assert image.size == (1024, 1024)
 
-    assert len(plans["berry_energy_bar"].prompts) == 1
-    assert len(plans["tropical_trail_mix"].prompts) == 1
+    assert len(plans["sparkling_lemon_water"].prompts) == 1
+    assert len(plans["citrus_craft_soda"].prompts) == 1
+    assert len(plans["peach_black_iced_tea"].prompts) == 1
