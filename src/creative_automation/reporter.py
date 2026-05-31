@@ -20,10 +20,19 @@ def default_report_path(output_root: Path | str, campaign_id: str) -> Path:
 
 def _report_payload(result: DryRunResult) -> dict[str, Any]:
     products = []
+    warnings = []
     for product_plan in result.products:
         prompt_by_variant = {prompt.variant_id: prompt.prompt for prompt in product_plan.prompts}
         variants = []
         for variant in product_plan.variants:
+            for warning in variant.warnings:
+                warnings.append(
+                    {
+                        "product_id": product_plan.product.id,
+                        "variant_id": variant.variant_id,
+                        "message": warning,
+                    }
+                )
             variants.append(
                 {
                     "variant_id": variant.variant_id,
@@ -31,7 +40,11 @@ def _report_payload(result: DryRunResult) -> dict[str, Any]:
                     "input_path": _path_or_none(variant.input_path),
                     "prepared_source_visual_path": _path_or_none(variant.prepared_source_visual_path),
                     "generated_source_visual_path": _path_or_none(variant.generated_source_visual_path),
+                    "adapted_source_visual_paths": {
+                        ratio: _path_or_none(path) for ratio, path in variant.adapted_source_visual_paths.items()
+                    },
                     "rendition_paths": [_path_or_none(path) for path in variant.rendition_paths],
+                    "warnings": variant.warnings,
                     "prompt": prompt_by_variant.get(variant.variant_id),
                 }
             )
@@ -53,7 +66,7 @@ def _report_payload(result: DryRunResult) -> dict[str, Any]:
         "cta": result.campaign.cta,
         "brand": {"name": result.campaign.brand.name},
         "products": products,
-        "warnings": [],
+        "warnings": warnings,
         "validation_results": {
             "brief_loaded": True,
             "product_count": len(result.products),

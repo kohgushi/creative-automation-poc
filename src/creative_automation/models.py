@@ -99,7 +99,9 @@ class AssetVariant(BaseModel):
     product_asset_path: Path | None = None
     prepared_source_visual_path: Path | None = None
     generated_source_visual_path: Path | None = None
+    adapted_source_visual_paths: dict[str, Path] = Field(default_factory=dict)
     rendition_paths: list[Path] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
     @property
     def input_path(self) -> Path | None:

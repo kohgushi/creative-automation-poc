@@ -34,5 +34,23 @@ def test_mock_generator_uses_product_asset(tmp_path: Path) -> None:
         assert image.size == (1024, 1024)
 
 
+def test_mock_generator_adapts_source_visual(tmp_path: Path) -> None:
+    source_visual = Path(
+        "input_examples/assets/products/citrus_craft_soda/source_visuals/citrus_craft_soda_source_visual.png"
+    )
+    output_path = tmp_path / "9x16_source_visual.png"
+
+    MockImageGenerator().adapt_source_visual(
+        source_visual_path=source_visual,
+        prompt="Adapt this source visual for 9:16.",
+        output_path=output_path,
+        size=(1080, 1920),
+    )
+
+    assert output_path.exists()
+    with Image.open(output_path) as image:
+        assert image.size == (1080, 1920)
+
+
 def test_get_image_generator_selects_openai_provider() -> None:
     assert isinstance(get_image_generator("openai"), OpenAIImageGenerator)

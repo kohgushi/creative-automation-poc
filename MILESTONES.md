@@ -223,3 +223,47 @@ Out of Scope:
 - Production approval workflows.
 - Social publishing.
 - Analytics.
+
+## Milestone 7: Aspect-Aware Source Visual Adaptation
+
+Goal:
+
+Prevent products from being cut off when source visuals are rendered into `1:1`, `9:16`, and `16:9` final creatives.
+
+Modules:
+
+- `src/creative_automation/renderer.py`
+- `src/creative_automation/generators.py`
+- `src/creative_automation/pipeline.py`
+- `src/creative_automation/reporter.py`
+- CLI integration
+- Focused tests
+
+Scope:
+
+- Expose renderer template safe areas for image adaptation prompts.
+- Add an image generator interface for aspect-aware source visual adaptation.
+- Implement a mock adaptation path for tests.
+- Implement an OpenAI-backed adaptation path for final execution.
+- Add `--adapt-source-visuals`.
+- Generate one adapted source visual per asset variant and aspect ratio:
+  - `1x1_source_visual.png`
+  - `9x16_source_visual.png`
+  - `16x9_source_visual.png`
+- Render final creatives from adapted source visuals when available.
+- Fall back to existing crop rendering if adaptation fails for a ratio.
+- Record adaptation warnings and adapted source visual paths in `report.json`.
+
+Completion Criteria:
+
+- Existing source visual variants and generated source visual variants can both be adapted.
+- Mock pipeline produces adapted source visual files for all three aspect ratios.
+- Final creatives still render for all variants and aspect ratios.
+- Report includes adapted source visual paths and adaptation warnings.
+- Tests pass.
+
+Out of Scope:
+
+- Localization.
+- Legal review.
+- Object detection or segmentation-based smart crop.

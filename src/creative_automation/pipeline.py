@@ -8,7 +8,7 @@ from creative_automation.generators import get_image_generator
 from creative_automation.models import AssetSource
 from creative_automation.models import DryRunResult
 from creative_automation.prompt_planner import get_prompt_planner
-from creative_automation.renderer import CreativeRenderer
+from creative_automation.renderer import CreativeRenderer, adaptation_specs, template_for_ratio
 
 
 def build_dry_run_result(
@@ -76,6 +76,7 @@ def run_pipeline(
     output_root: Path | str,
     prompt_planner_name: str,
     image_provider_name: str,
+    adapt_source_visuals: bool = False,
 ) -> DryRunResult:
     result = prepare_source_visuals(
         brief_path=brief_path,
@@ -86,6 +87,7 @@ def run_pipeline(
     )
     asset_store = AssetStore(asset_root=asset_root, output_root=output_root)
     renderer = CreativeRenderer()
+    image_generator = get_image_generator(image_provider_name)
 
     for product_plan in result.products:
         for variant in product_plan.variants:
@@ -93,9 +95,57 @@ def run_pipeline(
             if source_visual_path is None:
                 continue
             output_dir = asset_store.output_dir_for(result.campaign.campaign_id, variant)
-            variant.rendition_paths = renderer.render_all(result.campaign, source_visual_path, output_dir)
+            if adapt_source_visuals:
+                _adapt_source_visuals_for_variant(
+                    image_generator=image_generator,
+                    source_visual_path=source_visual_path,
+                    output_dir=output_dir,
+                    variant=variant,
+                )
+            variant.rendition_paths = []
+            for spec in adaptation_specs():
+                ratio = str(spec["ratio"])
+                render_source = variant.adapted_source_visual_paths.get(ratio, source_visual_path)
+                variant.rendition_paths.append(
+                    renderer.render(result.campaign, render_source, output_dir, template_for_ratio(ratio))
+                )
 
     return result
+
+
+def _adapt_source_visuals_for_variant(
+    image_generator,
+    source_visual_path: Path,
+    output_dir: Path,
+    variant,
+) -> None:
+    for spec in adaptation_specs():
+        ratio = str(spec["ratio"])
+        size = spec["size"]
+        output_path = output_dir / str(spec["filename"])
+        prompt = _adaptation_prompt(spec)
+        try:
+            image_generator.adapt_source_visual(
+                source_visual_path=source_visual_path,
+                prompt=prompt,
+                output_path=output_path,
+                size=size,
+            )
+        except Exception as exc:
+            variant.warnings.append(f"aspect_adaptation {ratio} failed; fell back to crop rendering: {exc}")
+            continue
+        variant.adapted_source_visual_paths[ratio] = output_path
+
+
+def _adaptation_prompt(spec: dict[str, object]) -> str:
+    return (
+        "Recompose and extend this source visual for a final social ad creative. "
+        f"Target aspect ratio: {spec['ratio']}. Target output size: {spec['size']}. "
+        "Keep the product fully visible and do not crop the product. Preserve product identity, packaging shape, "
+        "colors, lighting direction, and the original visual world. Leave clean negative space for deterministic "
+        f"text overlay in these normalized safe areas: {spec['safe_areas']}. "
+        "Do not render any text, brand logos, CTA buttons, watermarks, or third-party marks in the image."
+    )
 
 
 def format_dry_run(result: DryRunResult, output_root: Path | str) -> str:

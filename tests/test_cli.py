@@ -104,3 +104,32 @@ def test_cli_writes_report_when_requested(tmp_path, capsys) -> None:
     assert exit_code == 0
     assert "Report:" in output
     assert (tmp_path / "summer_refresh_2026" / "report.json").exists()
+
+
+def test_cli_adapts_source_visuals_when_requested(tmp_path, capsys) -> None:
+    exit_code = main(
+        [
+            "--brief",
+            "input_examples/briefs/summer_refresh.yaml",
+            "--assets",
+            "input_examples/assets",
+            "--out",
+            str(tmp_path),
+            "--prompt-planner",
+            "rule-based",
+            "--image-provider",
+            "mock",
+            "--adapt-source-visuals",
+        ]
+    )
+
+    capsys.readouterr()
+
+    assert exit_code == 0
+    assert (
+        tmp_path
+        / "summer_refresh_2026"
+        / "sparkling_lemon_water"
+        / "text_generated"
+        / "16x9_source_visual.png"
+    ).exists()

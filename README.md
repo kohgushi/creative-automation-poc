@@ -16,6 +16,7 @@ The final POC is expected to use OpenAI for:
 
 - LLM-based image prompt planning.
 - Image generation for missing source visuals.
+- Aspect-aware source visual adaptation before final rendering.
 
 Text placement is handled by a deterministic rendering layer so the logo, campaign message, and CTA remain accurate and reviewable.
 
@@ -29,15 +30,16 @@ input_examples/
     products/
       sparkling_lemon_water/
         source_visuals/
-          poolside_can.png
         product_assets/
-      berry_energy_bar/
+      citrus_craft_soda/
+        source_visuals/
+          citrus_craft_soda_source_visual.png
+        product_assets/
+          citrus_craft_soda_product.png
+      peach_black_iced_tea/
         source_visuals/
         product_assets/
-          wrapper_front.png
-      tropical_trail_mix/
-        source_visuals/
-        product_assets/
+          peach_black_iced_tea_product.png
 ```
 
 ## Setup
@@ -73,6 +75,7 @@ Run the full OpenAI-backed pipeline:
   --out outputs \
   --prompt-planner openai \
   --image-provider openai \
+  --adapt-source-visuals \
   --report
 ```
 
@@ -97,19 +100,36 @@ Runtime outputs are written to `outputs/<campaign_id>/`:
 outputs/summer_refresh_2026/
   report.json
   sparkling_lemon_water/
-    source_poolside_can/
-      1x1.png
-      9x16.png
-      16x9.png
-  berry_energy_bar/
-    product_wrapper_front/
-      generated_source_visual.png
-      1x1.png
-      9x16.png
-      16x9.png
-  tropical_trail_mix/
     text_generated/
       generated_source_visual.png
+      1x1_source_visual.png
+      9x16_source_visual.png
+      16x9_source_visual.png
+      1x1.png
+      9x16.png
+      16x9.png
+  citrus_craft_soda/
+    source_citrus_craft_soda_source_visual/
+      1x1_source_visual.png
+      9x16_source_visual.png
+      16x9_source_visual.png
+      1x1.png
+      9x16.png
+      16x9.png
+    product_citrus_craft_soda_product/
+      generated_source_visual.png
+      1x1_source_visual.png
+      9x16_source_visual.png
+      16x9_source_visual.png
+      1x1.png
+      9x16.png
+      16x9.png
+  peach_black_iced_tea/
+    product_peach_black_iced_tea_product/
+      generated_source_visual.png
+      1x1_source_visual.png
+      9x16_source_visual.png
+      16x9_source_visual.png
       1x1.png
       9x16.png
       16x9.png
@@ -120,6 +140,7 @@ outputs/summer_refresh_2026/
 - Existing source visuals are reused instead of regenerated.
 - Product assets are converted into source visuals through image generation.
 - Products without assets are generated from the product description and campaign context.
+- Source visuals can be adapted per aspect ratio so products are less likely to be cut off by final crops.
 - OpenAI is the concrete LLM and image generation provider for this POC.
 - Text logo, campaign message, and CTA are rendered deterministically with Pillow instead of relying on image generation models to render text.
 - The renderer uses fixed aspect-ratio templates for reliable `1:1`, `9:16`, and `16:9` outputs.

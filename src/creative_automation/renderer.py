@@ -20,6 +20,10 @@ class AspectRatioTemplate:
     message_size_scale: float
     cta_size_scale: float
 
+    @property
+    def source_visual_filename(self) -> str:
+        return f"{self.filename.removesuffix('.png')}_source_visual.png"
+
 
 TEMPLATES = {
     "1:1": AspectRatioTemplate(
@@ -93,6 +97,26 @@ class CreativeRenderer:
         output_path = output_dir / template.filename
         final.save(output_path)
         return output_path
+
+
+def adaptation_specs() -> list[dict[str, object]]:
+    return [
+        {
+            "ratio": template.ratio,
+            "filename": template.source_visual_filename,
+            "size": template.size,
+            "safe_areas": {
+                "logo": template.logo_box,
+                "campaign_message": template.message_box,
+                "cta": template.cta_box,
+            },
+        }
+        for template in TEMPLATES.values()
+    ]
+
+
+def template_for_ratio(ratio: str) -> AspectRatioTemplate:
+    return TEMPLATES[ratio]
 
 
 def _cover_image(source_visual_path: Path, size: tuple[int, int]) -> Image.Image:

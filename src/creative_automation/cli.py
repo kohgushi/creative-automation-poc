@@ -17,6 +17,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out", type=Path, required=True, help="Path to output root")
     parser.add_argument("--prompt-planner", default="openai", help="Prompt planner provider")
     parser.add_argument("--image-provider", default="openai", help="Image generation provider")
+    parser.add_argument(
+        "--adapt-source-visuals",
+        action="store_true",
+        help="Generate aspect-ratio-specific source visuals before final rendering",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Load inputs and print asset classification only")
     parser.add_argument("--show-prompts", action="store_true", help="Generate and print image prompts during dry-run")
     parser.add_argument("--report", action="store_true", help="Write outputs/<campaign_id>/report.json")
@@ -43,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.out,
                 prompt_planner_name=args.prompt_planner,
                 image_provider_name=args.image_provider,
+                adapt_source_visuals=args.adapt_source_visuals,
             )
     except (BriefLoadError, ImageGeneratorError, PromptPlannerError) as exc:
         parser.error(str(exc))

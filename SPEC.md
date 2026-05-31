@@ -50,6 +50,7 @@ The following features are optional and should not block the minimum local pipel
 The following optional feature is implemented for demo traceability:
 
 - JSON report containing output paths, asset source, prompt text, warnings, and validation results.
+- Aspect-aware source visual adaptation for each final aspect ratio.
 
 ### 2.3 Non-Goals
 
@@ -74,6 +75,7 @@ The POC will not:
 - `Final creative`: the rendered social ad image containing the source visual, text logo, campaign message, and CTA.
 - `Rendition`: one final creative exported for a specific aspect ratio.
 - `Prompt planner`: an LLM-backed component that turns campaign, product, visual direction, and asset context into image-generation prompts.
+- `Aspect-aware source visual`: a source visual adapted for one final aspect ratio before text overlay.
 
 ### 3.2 Expansion Model
 
@@ -348,6 +350,9 @@ outputs/<campaign_id>/
     <asset_variant_id>/
       source_visual.png
       generated_source_visual.png
+      1x1_source_visual.png
+      9x16_source_visual.png
+      16x9_source_visual.png
       1x1.png
       9x16.png
       16x9.png
@@ -357,6 +362,7 @@ Notes:
 
 - `source_visual.png` is optional and may be a copied reusable source visual.
 - `generated_source_visual.png` is created only when the pipeline generates a source visual.
+- `<ratio>_source_visual.png` is created when aspect-aware source visual adaptation is enabled.
 - Final creative filenames use stable ratio names: `1x1.png`, `9x16.png`, and `16x9.png`.
 - `outputs/` is runtime-generated and should generally be ignored by git.
 
@@ -397,11 +403,12 @@ The report includes:
    - Reuse existing source visual if available.
    - Otherwise generate a source visual from a product asset.
    - Otherwise generate a source visual from product text and campaign context.
-5. Render final creatives for each configured aspect ratio.
-6. Save final creatives to the product and asset variant output folder.
-7. Optionally run validation checks.
-8. Write `report.json` when `--report` is provided.
-9. Print concise execution results to the console.
+5. If enabled, adapt each source visual for each configured aspect ratio using image generation.
+6. Render final creatives for each configured aspect ratio.
+7. Save final creatives to the product and asset variant output folder.
+8. Optionally run validation checks.
+9. Write `report.json` when `--report` is provided.
+10. Print concise execution results to the console.
 
 ## 7. Rendering and Generation Strategy
 
@@ -454,7 +461,31 @@ The renderer places:
 
 This avoids relying on image generation models for text accuracy, spelling, brand consistency, or legal reviewability.
 
-### 7.5 Aspect-Ratio Layout Rules
+### 7.5 Aspect-Aware Source Visual Adaptation
+
+When `--adapt-source-visuals` is enabled, every prepared source visual is adapted once per final aspect ratio before text rendering.
+
+The adaptation step uses the source visual as an input image and asks the image generation provider to recompose or extend it for the target aspect ratio. The prompt includes:
+
+- Target aspect ratio and output size.
+- Logo, campaign message, and CTA safe areas.
+- A requirement to keep the product fully visible.
+- A requirement to preserve product identity, package shape, and visual context.
+- A requirement to leave copy areas clean.
+- A requirement to avoid rendered text, third-party logos, or unsupported claims.
+
+Adapted source visuals are saved as:
+
+```text
+outputs/<campaign_id>/<product_id>/<asset_variant_id>/
+  1x1_source_visual.png
+  9x16_source_visual.png
+  16x9_source_visual.png
+```
+
+If adaptation fails for a ratio, the pipeline records a warning and falls back to rendering from the prepared source visual using the existing crop behavior. This keeps demos and batch runs from failing completely because of a single image adaptation issue.
+
+### 7.6 Aspect-Ratio Layout Rules
 
 Phase 1 uses fixed templates per aspect ratio:
 
@@ -475,6 +506,7 @@ Target command:
   --out outputs \
   --prompt-planner openai \
   --image-provider openai \
+  --adapt-source-visuals \
   --report
 ```
 
@@ -485,6 +517,7 @@ Arguments:
 - `--out`: path to output root.
 - `--prompt-planner`: prompt planner provider name. Final POC supports `openai`; local development may support `rule-based`.
 - `--image-provider`: image generation provider name. Final POC supports `openai`; local development may support `mock`.
+- `--adapt-source-visuals`: generate aspect-ratio-specific source visuals before final text rendering.
 
 Future optional arguments may include:
 
