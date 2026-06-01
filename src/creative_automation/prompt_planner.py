@@ -7,17 +7,43 @@ from creative_automation.settings import OpenAISettings, SettingsError, load_ope
 
 
 class PromptPlannerError(RuntimeError):
+    """Raised when source visual prompt planning fails."""
+
     pass
 
 
 class PromptPlanner(ABC):
+    """Interface for creating prompts for source visual generation."""
+
     @abstractmethod
     def plan_prompt(self, campaign: CampaignBrief, product: Product, variant: AssetVariant) -> PlannedPrompt | None:
+        """Create a generation prompt for an asset variant.
+
+        Args:
+            campaign: Campaign context.
+            product: Product being processed.
+            variant: Asset variant requiring source visual preparation.
+
+        Returns:
+            Planned prompt, or `None` when no generation prompt is needed.
+        """
         pass
 
 
 class RuleBasedPromptPlanner(PromptPlanner):
+    """Deterministic prompt planner used for tests and local development."""
+
     def plan_prompt(self, campaign: CampaignBrief, product: Product, variant: AssetVariant) -> PlannedPrompt | None:
+        """Build a prompt from campaign, product, and asset variant fields.
+
+        Args:
+            campaign: Campaign context.
+            product: Product being processed.
+            variant: Asset variant requiring source visual generation.
+
+        Returns:
+            Planned prompt, or `None` for reused source visuals.
+        """
         if variant.source == AssetSource.REUSED_SOURCE_VISUAL:
             return None
 
@@ -32,10 +58,30 @@ class RuleBasedPromptPlanner(PromptPlanner):
 
 
 class OpenAIPromptPlanner(PromptPlanner):
+    """OpenAI-backed planner that refines source visual generation prompts."""
+
     def __init__(self, settings: OpenAISettings | None = None) -> None:
+        """Initialize the planner.
+
+        Args:
+            settings: Optional OpenAI settings. Defaults to environment-backed settings.
+        """
         self.settings = settings or load_openai_settings()
 
     def plan_prompt(self, campaign: CampaignBrief, product: Product, variant: AssetVariant) -> PlannedPrompt | None:
+        """Generate a concise image-generation prompt with OpenAI.
+
+        Args:
+            campaign: Campaign context.
+            product: Product being processed.
+            variant: Asset variant requiring source visual generation.
+
+        Returns:
+            Planned prompt, or `None` for reused source visuals.
+
+        Raises:
+            PromptPlannerError: If settings, import, API call, or response text fail.
+        """
         if variant.source == AssetSource.REUSED_SOURCE_VISUAL:
             return None
 
@@ -70,6 +116,17 @@ class OpenAIPromptPlanner(PromptPlanner):
 
 
 def get_prompt_planner(name: str) -> PromptPlanner:
+    """Create a prompt planner by provider name.
+
+    Args:
+        name: Provider name such as `rule-based` or `openai`.
+
+    Returns:
+        Prompt planner implementation.
+
+    Raises:
+        PromptPlannerError: If the provider name is unsupported.
+    """
     normalized = name.strip().lower()
     if normalized in {"rule-based", "rule_based", "rules"}:
         return RuleBasedPromptPlanner()
@@ -79,6 +136,19 @@ def get_prompt_planner(name: str) -> PromptPlanner:
 
 
 def build_rule_based_prompt(campaign: CampaignBrief, product: Product, variant: AssetVariant) -> str:
+    """Build the baseline source visual prompt from structured campaign data.
+
+    Args:
+        campaign: Campaign context.
+        product: Product being processed.
+        variant: Asset variant determining whether an input product image exists.
+
+    Returns:
+        Prompt text suitable for a source visual generation model.
+
+    Raises:
+        PromptPlannerError: If the variant source cannot be generated.
+    """
     visual_direction = _format_visual_direction(campaign)
     visual_notes = f" Product-specific visual notes: {product.visual_notes.rstrip('.')}." if product.visual_notes else ""
 
@@ -109,6 +179,16 @@ def build_rule_based_prompt(campaign: CampaignBrief, product: Product, variant: 
 
 
 def _openai_instruction(campaign: CampaignBrief, product: Product, variant: AssetVariant) -> str:
+    """Build the instruction used by the OpenAI prompt planner.
+
+    Args:
+        campaign: Campaign context.
+        product: Product being processed.
+        variant: Asset variant requiring prompt planning.
+
+    Returns:
+        Prompt-planning instruction for the text model.
+    """
     base_prompt = build_rule_based_prompt(campaign, product, variant)
     if variant.source == AssetSource.GENERATED_FROM_PRODUCT_ASSET:
         prompt_type = "product-asset-to-source-visual"
@@ -127,6 +207,14 @@ def _openai_instruction(campaign: CampaignBrief, product: Product, variant: Asse
 
 
 def _format_visual_direction(campaign: CampaignBrief) -> str:
+    """Render visual direction fields into compact prompt context.
+
+    Args:
+        campaign: Campaign brief with optional visual direction.
+
+    Returns:
+        Semicolon-separated visual direction text.
+    """
     if not campaign.visual_direction:
         return "No additional visual direction provided."
 

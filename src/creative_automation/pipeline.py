@@ -20,6 +20,18 @@ def build_dry_run_result(
     prompt_planner_name: str | None = None,
     show_prompts: bool = False,
 ) -> DryRunResult:
+    """Load inputs and classify assets without rendering final creatives.
+
+    Args:
+        brief_path: Campaign brief YAML path.
+        asset_root: Local input asset root.
+        output_root: Output root used for path planning.
+        prompt_planner_name: Optional planner provider used when `show_prompts` is true.
+        show_prompts: Whether to include generation prompts in the dry-run result.
+
+    Returns:
+        Pipeline result containing campaign and planned product asset variants.
+    """
     campaign = load_campaign_brief(brief_path)
     asset_store = AssetStore(asset_root=asset_root, output_root=output_root)
     products = asset_store.build_asset_plan(campaign)
@@ -41,6 +53,18 @@ def prepare_source_visuals(
     prompt_planner_name: str,
     image_provider_name: str,
 ) -> DryRunResult:
+    """Prepare reusable or generated source visuals for all product variants.
+
+    Args:
+        brief_path: Campaign brief YAML path.
+        asset_root: Local input asset root.
+        output_root: Root directory for generated source visuals.
+        prompt_planner_name: Prompt planner provider name.
+        image_provider_name: Image generator provider name.
+
+    Returns:
+        Pipeline result with prepared source visual paths and generation prompts.
+    """
     campaign = load_campaign_brief(brief_path)
     asset_store = AssetStore(asset_root=asset_root, output_root=output_root)
     products = asset_store.build_asset_plan(campaign)
@@ -82,6 +106,21 @@ def run_pipeline(
     color_selector_name: str = "rule-based",
     adapt_source_visuals: bool = False,
 ) -> DryRunResult:
+    """Run the full creative automation pipeline.
+
+    Args:
+        brief_path: Campaign brief YAML path.
+        asset_root: Local input asset root.
+        output_root: Root directory for generated outputs.
+        prompt_planner_name: Prompt planner provider name.
+        image_provider_name: Image generator provider name.
+        localizer_name: Localization provider name.
+        color_selector_name: Text color selector provider name.
+        adapt_source_visuals: Whether to generate aspect-specific source visuals before rendering.
+
+    Returns:
+        Pipeline result with localized text, generated source visuals, and final renditions.
+    """
     result = prepare_source_visuals(
         brief_path=brief_path,
         asset_root=asset_root,
@@ -142,6 +181,14 @@ def _adapt_source_visuals_for_variant(
     output_dir: Path,
     variant,
 ) -> None:
+    """Generate aspect-ratio-specific source visuals for one asset variant.
+
+    Args:
+        image_generator: Image generator implementation with adaptation support.
+        source_visual_path: Base source visual to adapt.
+        output_dir: Directory where adapted source visuals should be written.
+        variant: Asset variant receiving adapted source visual paths and warnings.
+    """
     for spec in adaptation_specs():
         ratio = str(spec["ratio"])
         size = spec["size"]
@@ -161,6 +208,14 @@ def _adapt_source_visuals_for_variant(
 
 
 def _adaptation_prompt(spec: dict[str, object]) -> str:
+    """Build an image-edit prompt for aspect-ratio source visual adaptation.
+
+    Args:
+        spec: Renderer adaptation spec containing ratio, size, and safe areas.
+
+    Returns:
+        Prompt text for the image generation provider.
+    """
     return (
         "Recompose and extend this source visual for a final social ad creative. "
         f"Target aspect ratio: {spec['ratio']}. Target output size: {spec['size']}. "
@@ -172,6 +227,15 @@ def _adaptation_prompt(spec: dict[str, object]) -> str:
 
 
 def format_dry_run(result: DryRunResult, output_root: Path | str) -> str:
+    """Format a pipeline result as concise console output.
+
+    Args:
+        result: Pipeline result to summarize.
+        output_root: Output root displayed in the summary.
+
+    Returns:
+        Human-readable multiline status text.
+    """
     lines = [
         f"Campaign: {result.campaign.campaign_id}",
         f"Products: {len(result.products)}",
@@ -195,6 +259,14 @@ def format_dry_run(result: DryRunResult, output_root: Path | str) -> str:
 
 
 def _prompt_label(source: AssetSource) -> str:
+    """Return a compact label for a prompt source type.
+
+    Args:
+        source: Asset source enum value.
+
+    Returns:
+        Label used in CLI output.
+    """
     if source == AssetSource.GENERATED_FROM_PRODUCT_ASSET:
         return "product-to-source-visual"
     if source == AssetSource.GENERATED_FROM_TEXT:

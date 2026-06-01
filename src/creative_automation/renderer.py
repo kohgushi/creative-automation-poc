@@ -10,6 +10,8 @@ from creative_automation.models import CampaignBrief, CreativeTextColors, Locali
 
 @dataclass(frozen=True)
 class AspectRatioTemplate:
+    """Rendering template for one output aspect ratio."""
+
     ratio: str
     filename: str
     size: tuple[int, int]
@@ -22,9 +24,22 @@ class AspectRatioTemplate:
 
     @property
     def source_visual_filename(self) -> str:
+        """Return the conventional adapted source visual filename.
+
+        Returns:
+            Filename such as `1x1_source_visual.png`.
+        """
         return f"{self.filename.removesuffix('.png')}_source_visual.png"
 
     def rendition_filename(self, locale: str | None = None) -> str:
+        """Return the final creative filename for an optional locale.
+
+        Args:
+            locale: Optional locale code appended to the filename.
+
+        Returns:
+            Localized or default rendition filename.
+        """
         stem = self.filename.removesuffix(".png")
         return f"{stem}_{locale}.png" if locale else self.filename
 
@@ -67,10 +82,14 @@ TEMPLATES = {
 
 
 class RendererError(RuntimeError):
+    """Raised when deterministic creative rendering cannot complete."""
+
     pass
 
 
 class CreativeRenderer:
+    """Pillow renderer for final social creative images."""
+
     def render_all(
         self,
         campaign: CampaignBrief,
@@ -79,6 +98,18 @@ class CreativeRenderer:
         localized_text: LocalizedCreativeText | None = None,
         text_colors: CreativeTextColors | None = None,
     ) -> list[Path]:
+        """Render all configured aspect ratios from one source visual.
+
+        Args:
+            campaign: Campaign brief containing brand and source text.
+            source_visual_path: Base image used behind the creative copy.
+            output_dir: Directory for rendered creative files.
+            localized_text: Optional localized message and CTA.
+            text_colors: Optional preselected text colors.
+
+        Returns:
+            Paths to rendered final creatives.
+        """
         return [
             self.render(campaign, source_visual_path, output_dir, template, localized_text=localized_text, text_colors=text_colors)
             for template in TEMPLATES.values()
@@ -93,6 +124,22 @@ class CreativeRenderer:
         localized_text: LocalizedCreativeText | None = None,
         text_colors: CreativeTextColors | None = None,
     ) -> Path:
+        """Render one final creative from a source visual and template.
+
+        Args:
+            campaign: Campaign brief containing brand and source text.
+            source_visual_path: Base image used behind the creative copy.
+            output_dir: Directory for the rendered creative.
+            template: Aspect-ratio layout template.
+            localized_text: Optional localized message and CTA.
+            text_colors: Optional preselected text colors.
+
+        Returns:
+            Path to the rendered creative.
+
+        Raises:
+            RendererError: If the source visual does not exist.
+        """
         if not source_visual_path.exists():
             raise RendererError(f"Source visual not found: {source_visual_path}")
 
@@ -114,6 +161,11 @@ class CreativeRenderer:
 
 
 def adaptation_specs() -> list[dict[str, object]]:
+    """Expose renderer layout constraints for source visual adaptation.
+
+    Returns:
+        Specs containing target ratio, size, filename, and text safe areas.
+    """
     return [
         {
             "ratio": template.ratio,
@@ -130,18 +182,53 @@ def adaptation_specs() -> list[dict[str, object]]:
 
 
 def template_for_ratio(ratio: str) -> AspectRatioTemplate:
+    """Return the renderer template for an aspect ratio.
+
+    Args:
+        ratio: Aspect ratio key such as `1:1`, `9:16`, or `16:9`.
+
+    Returns:
+        Matching aspect-ratio template.
+    """
     return TEMPLATES[ratio]
 
 
 def cover_image_for_template(source_visual_path: Path, template: AspectRatioTemplate) -> Image.Image:
+    """Resize and crop a source visual to cover a template canvas.
+
+    Args:
+        source_visual_path: Source visual image path.
+        template: Target aspect-ratio template.
+
+    Returns:
+        RGB image sized exactly to the template.
+    """
     return _cover_image(source_visual_path, template.size)
 
 
 def template_region(image: Image.Image, box: tuple[float, float, float, float]) -> Image.Image:
+    """Crop a normalized template box from an image.
+
+    Args:
+        image: Image already sized to a template canvas.
+        box: Normalized `(left, top, right, bottom)` box.
+
+    Returns:
+        Cropped image region.
+    """
     return image.crop(_box_pixels(box, image.size))
 
 
 def _cover_image(source_visual_path: Path, size: tuple[int, int]) -> Image.Image:
+    """Resize and center-crop an image to cover a fixed canvas.
+
+    Args:
+        source_visual_path: Input image path.
+        size: Target pixel dimensions.
+
+    Returns:
+        Cropped RGB image matching `size`.
+    """
     image = Image.open(source_visual_path).convert("RGB")
     image_ratio = image.width / image.height
     target_ratio = size[0] / size[1]
@@ -160,6 +247,12 @@ def _cover_image(source_visual_path: Path, size: tuple[int, int]) -> Image.Image
 
 
 def _draw_readability_gradient(draw: ImageDraw.ImageDraw, size: tuple[int, int]) -> None:
+    """Draw the legacy radial readability overlay.
+
+    Args:
+        draw: Drawing context for an RGBA overlay.
+        size: Canvas dimensions.
+    """
     width, height = size
     # Smooth radial-ish overlay centered near the copy area. This avoids hard vertical
     # or horizontal boundaries while keeping text readable over bright source visuals.
@@ -181,6 +274,14 @@ def _draw_text_logo(
     template: AspectRatioTemplate,
     colors: CreativeTextColors,
 ) -> None:
+    """Draw the brand text logo.
+
+    Args:
+        draw: Drawing context for the overlay.
+        campaign: Campaign containing the brand name.
+        template: Aspect-ratio layout template.
+        colors: Selected text colors.
+    """
     box = _box_pixels(template.logo_box, template.size)
     font = _font_for_box(campaign.brand.name, box, template.logo_size_scale, bold=True)
     draw.text((box[0], box[1]), campaign.brand.name.upper(), font=font, fill=_text_color(campaign, "logo", colors.brand))
@@ -193,6 +294,15 @@ def _draw_campaign_message(
     localized_text: LocalizedCreativeText | None,
     colors: CreativeTextColors,
 ) -> None:
+    """Draw the campaign message within the template message box.
+
+    Args:
+        draw: Drawing context for the overlay.
+        campaign: Campaign containing the source message.
+        template: Aspect-ratio layout template.
+        localized_text: Optional localized message.
+        colors: Selected text colors.
+    """
     box = _box_pixels(template.message_box, template.size)
     message = localized_text.campaign_message if localized_text else campaign.campaign_message
     font = _font_for_box(message, box, template.message_size_scale, bold=True)
@@ -212,6 +322,15 @@ def _draw_cta(
     localized_text: LocalizedCreativeText | None,
     colors: CreativeTextColors,
 ) -> None:
+    """Draw the CTA as a simple pill-shaped button.
+
+    Args:
+        draw: Drawing context for the overlay.
+        campaign: Campaign containing the source CTA.
+        template: Aspect-ratio layout template.
+        localized_text: Optional localized CTA.
+        colors: Selected text colors.
+    """
     box = _box_pixels(template.cta_box, template.size)
     cta = localized_text.cta if localized_text else campaign.cta
     font = _font_for_box(cta, box, template.cta_size_scale, bold=True)
@@ -237,6 +356,15 @@ def _draw_cta(
 
 
 def _box_pixels(box: tuple[float, float, float, float], size: tuple[int, int]) -> tuple[int, int, int, int]:
+    """Convert a normalized template box to integer pixel coordinates.
+
+    Args:
+        box: Normalized `(left, top, right, bottom)` coordinates.
+        size: Canvas dimensions.
+
+    Returns:
+        Pixel coordinate tuple.
+    """
     width, height = size
     return (
         round(box[0] * width),
@@ -247,6 +375,17 @@ def _box_pixels(box: tuple[float, float, float, float], size: tuple[int, int]) -
 
 
 def _font_for_box(text: str, box: tuple[int, int, int, int], size_scale: float, bold: bool = False) -> ImageFont.FreeTypeFont:
+    """Select the largest font that fits wrapped text into a box.
+
+    Args:
+        text: Text to fit.
+        box: Pixel box available for the text.
+        size_scale: Initial font-size scale relative to box width.
+        bold: Whether to prefer bold fonts.
+
+    Returns:
+        Font sized to fit the available box height.
+    """
     max_size = max(14, round((box[2] - box[0]) * size_scale))
     min_size = 18
     for size in range(max_size, min_size - 1, -2):
@@ -261,6 +400,16 @@ def _font_for_box(text: str, box: tuple[int, int, int, int], size_scale: float, 
 
 
 def _load_font(size: int, bold: bool = False, text: str = "") -> ImageFont.FreeTypeFont:
+    """Load a system font suitable for the requested text.
+
+    Args:
+        size: Font size in pixels.
+        bold: Whether to prefer bold font files.
+        text: Text used to decide whether multilingual font fallback is needed.
+
+    Returns:
+        Pillow font object.
+    """
     latin_candidates = [
         "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
         if bold
@@ -285,10 +434,29 @@ def _load_font(size: int, bold: bool = False, text: str = "") -> ImageFont.FreeT
 
 
 def _needs_multilingual_font(text: str) -> bool:
+    """Return whether text contains non-ASCII characters.
+
+    Args:
+        text: Text to inspect.
+
+    Returns:
+        True when multilingual font fallback is likely needed.
+    """
     return any(ord(character) > 127 for character in text)
 
 
 def _wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, max_width: int) -> list[str]:
+    """Wrap text to fit within a maximum width.
+
+    Args:
+        draw: Drawing context used for measuring text.
+        text: Text to wrap.
+        font: Font used for measurement.
+        max_width: Maximum line width in pixels.
+
+    Returns:
+        Wrapped lines.
+    """
     if _needs_character_wrap(text):
         return _wrap_text_by_character(draw, text, font, max_width)
 
@@ -315,6 +483,17 @@ def _wrap_text_by_character(
     font: ImageFont.ImageFont,
     max_width: int,
 ) -> list[str]:
+    """Wrap text at character boundaries.
+
+    Args:
+        draw: Drawing context used for measuring text.
+        text: Text to wrap.
+        font: Font used for measurement.
+        max_width: Maximum line width in pixels.
+
+    Returns:
+        Wrapped lines.
+    """
     lines: list[str] = []
     current = ""
     for character in text:
@@ -330,10 +509,26 @@ def _wrap_text_by_character(
 
 
 def _needs_character_wrap(text: str) -> bool:
+    """Return whether text should wrap by character instead of word.
+
+    Args:
+        text: Text to inspect.
+
+    Returns:
+        True for non-ASCII text without spaces.
+    """
     return bool(text) and " " not in text and _needs_multilingual_font(text)
 
 
 def _default_text_colors(campaign: CampaignBrief) -> CreativeTextColors:
+    """Build fallback text colors when the pipeline does not provide them.
+
+    Args:
+        campaign: Campaign that may include explicit text style colors.
+
+    Returns:
+        Text colors using explicit styles or the default teal fallback.
+    """
     fallback = "#00687d"
     return CreativeTextColors(
         brand=_text_color(campaign, "logo", fallback),
@@ -343,6 +538,16 @@ def _default_text_colors(campaign: CampaignBrief) -> CreativeTextColors:
 
 
 def _text_color(campaign: CampaignBrief, style_name: str, fallback: str) -> str:
+    """Resolve a text color from brief styles or a fallback.
+
+    Args:
+        campaign: Campaign that may include `text_styles`.
+        style_name: Style key such as `logo`, `campaign_message`, or `cta`.
+        fallback: Color used when the style has no explicit color.
+
+    Returns:
+        Hex color string.
+    """
     style = campaign.text_styles.get(style_name, {})
     if isinstance(style, dict) and style.get("color"):
         return str(style["color"])
@@ -350,11 +555,30 @@ def _text_color(campaign: CampaignBrief, style_name: str, fallback: str) -> str:
 
 
 def _brand_color(campaign: CampaignBrief, field_name: str, fallback: str) -> str:
+    """Return a brand color field with a fallback.
+
+    Args:
+        campaign: Campaign containing brand colors.
+        field_name: Brand color attribute name.
+        fallback: Color used when the brand field is empty.
+
+    Returns:
+        Brand color or fallback.
+    """
     value = getattr(campaign.brand, field_name)
     return value or fallback
 
 
 def _hex_to_rgba(value: str, alpha: int) -> tuple[int, int, int, int]:
+    """Convert a hex color to an RGBA tuple.
+
+    Args:
+        value: Hex color string.
+        alpha: Alpha channel value.
+
+    Returns:
+        RGBA tuple, falling back to white when parsing fails.
+    """
     stripped = value.lstrip("#")
     if len(stripped) != 6:
         return (255, 255, 255, alpha)

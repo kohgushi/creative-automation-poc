@@ -167,6 +167,7 @@ Never commit `.env` or real API keys. Keep `.env.example` safe to commit.
 - Do not rely on image generation models for final text rendering.
 - Use Pillow for deterministic text overlay and aspect-ratio rendering.
 - Preserve existing user changes unless explicitly asked to remove them.
+- Add Google style docstrings when creating or materially changing functions, methods, and classes. Keep them concise and focused on intent, inputs, outputs, and non-obvious behavior.
 
 ## Development Commands
 

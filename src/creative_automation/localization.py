@@ -10,17 +10,39 @@ from creative_automation.settings import OpenAISettings, SettingsError, load_ope
 
 
 class LocalizationError(RuntimeError):
+    """Raised when campaign text localization fails."""
+
     pass
 
 
 class Localizer(ABC):
+    """Interface for producing localized creative text."""
+
     @abstractmethod
     def localize(self, campaign: CampaignBrief) -> dict[str, LocalizedCreativeText]:
+        """Localize campaign message and CTA for configured locales.
+
+        Args:
+            campaign: Campaign brief containing source text and target locales.
+
+        Returns:
+            Mapping from locale code to localized creative text.
+        """
         pass
 
 
 class RuleBasedLocalizer(Localizer):
+    """Deterministic localizer used for tests and local development."""
+
     def localize(self, campaign: CampaignBrief) -> dict[str, LocalizedCreativeText]:
+        """Return source English text and simple tagged non-English placeholders.
+
+        Args:
+            campaign: Campaign brief containing source text and locales.
+
+        Returns:
+            Locale-to-text mapping without external API calls.
+        """
         localized = {}
         for locale in campaign.locales:
             if locale == "en":
@@ -35,10 +57,28 @@ class RuleBasedLocalizer(Localizer):
 
 
 class OpenAILocalizer(Localizer):
+    """OpenAI-backed localizer for campaign message and CTA text."""
+
     def __init__(self, settings: OpenAISettings | None = None) -> None:
+        """Initialize the localizer.
+
+        Args:
+            settings: Optional OpenAI settings. Defaults to environment-backed settings.
+        """
         self.settings = settings or load_openai_settings()
 
     def localize(self, campaign: CampaignBrief) -> dict[str, LocalizedCreativeText]:
+        """Localize configured non-English locales with OpenAI.
+
+        Args:
+            campaign: Campaign brief containing source English text and target locales.
+
+        Returns:
+            Locale-to-text mapping including unmodified English source text.
+
+        Raises:
+            LocalizationError: If settings, API response, or JSON parsing fail.
+        """
         localized = {}
         target_locales = []
         for locale in campaign.locales:
@@ -93,6 +133,17 @@ class OpenAILocalizer(Localizer):
 
 
 def get_localizer(name: str) -> Localizer:
+    """Create a localizer by provider name.
+
+    Args:
+        name: Provider name such as `rule-based` or `openai`.
+
+    Returns:
+        Localizer implementation.
+
+    Raises:
+        LocalizationError: If the provider name is unsupported.
+    """
     normalized = name.strip().lower()
     if normalized == "rule-based":
         return RuleBasedLocalizer()
@@ -102,10 +153,28 @@ def get_localizer(name: str) -> Localizer:
 
 
 def _source_text(campaign: CampaignBrief, locale: str) -> LocalizedCreativeText:
+    """Wrap source campaign text for a locale.
+
+    Args:
+        campaign: Campaign brief containing source text.
+        locale: Locale code to attach to the source text.
+
+    Returns:
+        Localized text object using the source campaign message and CTA.
+    """
     return LocalizedCreativeText(locale=locale, campaign_message=campaign.campaign_message, cta=campaign.cta)
 
 
 def _localization_instruction(campaign: CampaignBrief, target_locales: list[str]) -> str:
+    """Build the OpenAI localization instruction.
+
+    Args:
+        campaign: Campaign brief with source English text.
+        target_locales: Non-English locales to generate.
+
+    Returns:
+        Prompt requiring a JSON object keyed by locale.
+    """
     return (
         "You are a marketing localization specialist. Localize the campaign message and CTA from English "
         "for each requested locale. Keep the message concise enough for social ad image overlays. Preserve "

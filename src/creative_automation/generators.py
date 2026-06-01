@@ -10,10 +10,14 @@ from creative_automation.settings import OpenAISettings, SettingsError, load_ope
 
 
 class ImageGeneratorError(RuntimeError):
+    """Raised when source visual generation or adaptation fails."""
+
     pass
 
 
 class ImageGenerator(ABC):
+    """Interface for source visual generation providers."""
+
     @abstractmethod
     def generate_source_visual(
         self,
@@ -21,6 +25,16 @@ class ImageGenerator(ABC):
         output_path: Path,
         product_asset_path: Path | None = None,
     ) -> Path:
+        """Generate a campaign-ready source visual.
+
+        Args:
+            prompt: Image generation prompt.
+            output_path: Destination image path.
+            product_asset_path: Optional product-only image to use as input.
+
+        Returns:
+            Path to the generated source visual.
+        """
         pass
 
     @abstractmethod
@@ -31,16 +45,39 @@ class ImageGenerator(ABC):
         output_path: Path,
         size: tuple[int, int],
     ) -> Path:
+        """Adapt a source visual to a target aspect-ratio canvas.
+
+        Args:
+            source_visual_path: Input source visual path.
+            prompt: Image-edit prompt.
+            output_path: Destination image path.
+            size: Target pixel dimensions.
+
+        Returns:
+            Path to the adapted source visual.
+        """
         pass
 
 
 class MockImageGenerator(ImageGenerator):
+    """Deterministic Pillow generator used for tests and local development."""
+
     def generate_source_visual(
         self,
         prompt: str,
         output_path: Path,
         product_asset_path: Path | None = None,
     ) -> Path:
+        """Create a mock source visual without external API calls.
+
+        Args:
+            prompt: Prompt text embedded into the mock image for traceability.
+            output_path: Destination image path.
+            product_asset_path: Optional product asset composited into the mock image.
+
+        Returns:
+            Path to the generated mock source visual.
+        """
         output_path.parent.mkdir(parents=True, exist_ok=True)
         image = Image.new("RGB", (1024, 1024), "#f7d86a")
         draw = ImageDraw.Draw(image)
@@ -77,6 +114,17 @@ class MockImageGenerator(ImageGenerator):
         output_path: Path,
         size: tuple[int, int],
     ) -> Path:
+        """Create a mock aspect-adapted source visual.
+
+        Args:
+            source_visual_path: Input source visual path.
+            prompt: Prompt text embedded into the mock image for traceability.
+            output_path: Destination image path.
+            size: Target pixel dimensions.
+
+        Returns:
+            Path to the adapted mock image.
+        """
         output_path.parent.mkdir(parents=True, exist_ok=True)
         source = Image.open(source_visual_path).convert("RGB")
         background = _cover(source, size).filter(ImageFilter.GaussianBlur(radius=24))
@@ -97,7 +145,14 @@ class MockImageGenerator(ImageGenerator):
 
 
 class OpenAIImageGenerator(ImageGenerator):
+    """OpenAI-backed source visual generator and adapter."""
+
     def __init__(self, settings: OpenAISettings | None = None) -> None:
+        """Initialize the generator.
+
+        Args:
+            settings: Optional OpenAI settings. Defaults to environment-backed settings.
+        """
         self.settings = settings or load_openai_settings()
 
     def generate_source_visual(
@@ -106,6 +161,19 @@ class OpenAIImageGenerator(ImageGenerator):
         output_path: Path,
         product_asset_path: Path | None = None,
     ) -> Path:
+        """Generate a source visual using OpenAI image APIs.
+
+        Args:
+            prompt: Image generation or edit prompt.
+            output_path: Destination image path.
+            product_asset_path: Optional product image for image-edit generation.
+
+        Returns:
+            Path to the generated source visual.
+
+        Raises:
+            ImageGeneratorError: If settings, import, API call, or image data fail.
+        """
         try:
             validate_openai_settings(self.settings, require_image_model=True)
         except SettingsError as exc:
@@ -151,6 +219,20 @@ class OpenAIImageGenerator(ImageGenerator):
         output_path: Path,
         size: tuple[int, int],
     ) -> Path:
+        """Adapt a source visual to a target aspect ratio using OpenAI image edit.
+
+        Args:
+            source_visual_path: Input source visual path.
+            prompt: Aspect adaptation prompt.
+            output_path: Destination image path.
+            size: Target pixel dimensions.
+
+        Returns:
+            Path to the adapted source visual.
+
+        Raises:
+            ImageGeneratorError: If settings, import, API call, or image data fail.
+        """
         try:
             validate_openai_settings(self.settings, require_image_model=True)
         except SettingsError as exc:
@@ -183,6 +265,17 @@ class OpenAIImageGenerator(ImageGenerator):
 
 
 def get_image_generator(name: str) -> ImageGenerator:
+    """Create an image generator by provider name.
+
+    Args:
+        name: Provider name such as `mock` or `openai`.
+
+    Returns:
+        Image generator implementation.
+
+    Raises:
+        ImageGeneratorError: If the provider name is unsupported.
+    """
     normalized = name.strip().lower()
     if normalized == "mock":
         return MockImageGenerator()
@@ -192,10 +285,28 @@ def get_image_generator(name: str) -> ImageGenerator:
 
 
 def _shorten(text: str, limit: int = 95) -> str:
+    """Shorten prompt text for embedding in mock images.
+
+    Args:
+        text: Source text to shorten.
+        limit: Maximum output length.
+
+    Returns:
+        Original text or an ellipsized version.
+    """
     return text if len(text) <= limit else text[: limit - 3] + "..."
 
 
 def _cover(image: Image.Image, size: tuple[int, int]) -> Image.Image:
+    """Resize and crop an image to cover a target canvas.
+
+    Args:
+        image: Source image.
+        size: Target pixel dimensions.
+
+    Returns:
+        Cropped RGB image exactly matching the requested size.
+    """
     image = image.convert("RGB")
     image_ratio = image.width / image.height
     target_ratio = size[0] / size[1]
@@ -214,6 +325,14 @@ def _cover(image: Image.Image, size: tuple[int, int]) -> Image.Image:
 
 
 def _openai_size(size: tuple[int, int]) -> str:
+    """Map renderer dimensions to supported OpenAI image sizes.
+
+    Args:
+        size: Renderer target dimensions.
+
+    Returns:
+        OpenAI image size string.
+    """
     if size == (1080, 1920):
         return "1024x1536"
     if size == (1920, 1080):

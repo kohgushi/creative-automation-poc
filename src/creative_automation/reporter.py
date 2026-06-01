@@ -8,6 +8,15 @@ from creative_automation.models import DryRunResult
 
 
 def write_report(result: DryRunResult, report_path: Path | str) -> Path:
+    """Write a JSON report for a pipeline run.
+
+    Args:
+        result: Pipeline result containing campaign, products, variants, and outputs.
+        report_path: Destination path for the JSON report.
+
+    Returns:
+        Path to the written report.
+    """
     path = Path(report_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(_report_payload(result), indent=2))
@@ -15,10 +24,27 @@ def write_report(result: DryRunResult, report_path: Path | str) -> Path:
 
 
 def default_report_path(output_root: Path | str, campaign_id: str) -> Path:
+    """Build the conventional report path for a campaign.
+
+    Args:
+        output_root: Root output directory.
+        campaign_id: Campaign identifier.
+
+    Returns:
+        Path to `outputs/<campaign_id>/report.json`.
+    """
     return Path(output_root) / campaign_id / "report.json"
 
 
 def _report_payload(result: DryRunResult) -> dict[str, Any]:
+    """Convert a pipeline result into a serializable report payload.
+
+    Args:
+        result: Pipeline result to serialize.
+
+    Returns:
+        JSON-compatible dictionary with outputs, prompts, warnings, and validation details.
+    """
     products = []
     warnings = []
     for product_plan in result.products:
@@ -84,10 +110,26 @@ def _report_payload(result: DryRunResult) -> dict[str, Any]:
 
 
 def _path_or_none(path: Path | None) -> str | None:
+    """Render an optional path as a POSIX string.
+
+    Args:
+        path: Optional filesystem path.
+
+    Returns:
+        POSIX path string, or `None` when no path exists.
+    """
     return path.as_posix() if path else None
 
 
 def _rendition_paths_by_locale(paths: list[Path]) -> dict[str, list[str]]:
+    """Group final rendition paths by locale suffix.
+
+    Args:
+        paths: Final creative output paths.
+
+    Returns:
+        Mapping from locale code to rendition path strings.
+    """
     grouped: dict[str, list[str]] = {}
     for path in paths:
         locale = _locale_from_rendition_name(path.name)
@@ -96,6 +138,14 @@ def _rendition_paths_by_locale(paths: list[Path]) -> dict[str, list[str]]:
 
 
 def _locale_from_rendition_name(filename: str) -> str:
+    """Extract a locale code from a rendition filename.
+
+    Args:
+        filename: Rendition filename such as `1x1_en.png`.
+
+    Returns:
+        Locale suffix, or `default` for non-localized filenames.
+    """
     stem = filename.removesuffix(".png")
     parts = stem.split("_")
     return parts[-1] if len(parts) > 1 else "default"

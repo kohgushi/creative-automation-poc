@@ -9,10 +9,23 @@ from creative_automation.models import CampaignBrief
 
 
 class BriefLoadError(ValueError):
+    """Raised when a campaign brief cannot be loaded or validated."""
+
     pass
 
 
 def load_campaign_brief(path: Path | str) -> CampaignBrief:
+    """Load and validate a campaign brief YAML file.
+
+    Args:
+        path: Path to the YAML campaign brief.
+
+    Returns:
+        Validated campaign brief model.
+
+    Raises:
+        BriefLoadError: If the file is missing, invalid YAML, or fails schema validation.
+    """
     brief_path = Path(path)
     if not brief_path.exists():
         raise BriefLoadError(f"Campaign brief not found: {brief_path}")

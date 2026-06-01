@@ -13,6 +13,11 @@ from creative_automation.reporter import default_report_path, write_report
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the command-line argument parser.
+
+    Returns:
+        Configured argument parser for the creative automation CLI.
+    """
     parser = argparse.ArgumentParser(description="Creative automation pipeline")
     parser.add_argument("--brief", type=Path, required=True, help="Path to campaign brief YAML")
     parser.add_argument("--assets", type=Path, required=True, help="Path to input asset root")
@@ -33,6 +38,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the creative automation CLI.
+
+    Args:
+        argv: Optional argument list. Uses process arguments when omitted.
+
+    Returns:
+        Process-style exit code.
+    """
     parser = build_parser()
     args = parser.parse_args(argv)
 
