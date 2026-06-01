@@ -34,11 +34,11 @@ TEMPLATES = {
         ratio="1:1",
         filename="1x1.png",
         size=(1080, 1080),
-        logo_box=(0.08, 0.05, 0.45, 0.12),
-        message_box=(0.08, 0.61, 0.78, 0.81),
-        cta_box=(0.08, 0.85, 0.45, 0.95),
-        logo_size_scale=0.060,
-        message_size_scale=0.075,
+        logo_box=(0.06, 0.05, 0.43, 0.12),
+        message_box=(0.06, 0.21, 0.54, 0.55),
+        cta_box=(0.06, 0.57, 0.40, 0.67),
+        logo_size_scale=0.075,
+        message_size_scale=0.092,
         cta_size_scale=0.039,
     ),
     "9:16": AspectRatioTemplate(
@@ -46,9 +46,9 @@ TEMPLATES = {
         filename="9x16.png",
         size=(1080, 1920),
         logo_box=(0.08, 0.03, 0.58, 0.09),
-        message_box=(0.08, 0.67, 0.86, 0.83),
-        cta_box=(0.08, 0.87, 0.50, 0.94),
-        logo_size_scale=0.060,
+        message_box=(0.08, 0.71, 0.86, 0.86),
+        cta_box=(0.08, 0.90, 0.50, 0.97),
+        logo_size_scale=0.075,
         message_size_scale=0.072,
         cta_size_scale=0.039,
     ),
@@ -59,7 +59,7 @@ TEMPLATES = {
         logo_box=(0.07, 0.10, 0.42, 0.20),
         message_box=(0.07, 0.30, 0.55, 0.63),
         cta_box=(0.07, 0.68, 0.36, 0.82),
-        logo_size_scale=0.057,
+        logo_size_scale=0.070,
         message_size_scale=0.087,
         cta_size_scale=0.041,
     ),
@@ -208,32 +208,25 @@ def _draw_cta(
     button_height = min(box[3] - box[1], text_height + pad_y * 2)
     button = (box[0], box[1], box[0] + button_width, box[1] + button_height)
 
-    # Liquid-glass style: translucent white fill, soft border, and subtle shadow.
+    # Simple high-contrast translucent button for reliable readability.
     shadow = (
         button[0] + round(font.size * 0.10),
         button[1] + round(font.size * 0.16),
         button[2] + round(font.size * 0.10),
         button[3] + round(font.size * 0.16),
     )
-    draw.rounded_rectangle(shadow, radius=button_height // 2, fill=(0, 0, 0, 52))
+    text_color = _text_color(campaign, "cta")
+    draw.rounded_rectangle(shadow, radius=button_height // 2, fill=(0, 0, 0, 70))
     draw.rounded_rectangle(
         button,
         radius=button_height // 2,
-        fill=(255, 255, 255, 96),
-        outline=(255, 255, 255, 220),
+        fill=(0, 0, 0, 105),
+        outline=text_color,
         width=2,
     )
-    highlight = (
-        button[0] + 3,
-        button[1] + 3,
-        button[2] - 3,
-        button[1] + max(5, button_height // 2),
-    )
-    draw.rounded_rectangle(highlight, radius=max(4, button_height // 4), fill=(255, 255, 255, 38))
     text_x = button[0] + (button_width - text_width) / 2
     text_y = button[1] + (button_height - text_height) / 2 - font.size * 0.08
-    draw.text((text_x + 1, text_y + 1), text, font=font, fill=(0, 0, 0, 90))
-    draw.text((text_x, text_y), text, font=font, fill=_text_color(campaign, "cta"))
+    draw.text((text_x, text_y), text, font=font, fill=text_color)
 
 
 def _box_pixels(box: tuple[float, float, float, float], size: tuple[int, int]) -> tuple[int, int, int, int]:
