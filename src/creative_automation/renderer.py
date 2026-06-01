@@ -99,7 +99,6 @@ class CreativeRenderer:
         overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
 
-        _draw_readability_gradient(draw, template.size)
         _draw_text_logo(draw, campaign, template)
         _draw_campaign_message(draw, campaign, template, localized_text)
         _draw_cta(draw, campaign, template, localized_text)
@@ -208,25 +207,15 @@ def _draw_cta(
     button_height = min(box[3] - box[1], text_height + pad_y * 2)
     button = (box[0], box[1], box[0] + button_width, box[1] + button_height)
 
-    # Simple high-contrast translucent button for reliable readability.
-    shadow = (
-        button[0] + round(font.size * 0.10),
-        button[1] + round(font.size * 0.16),
-        button[2] + round(font.size * 0.10),
-        button[3] + round(font.size * 0.16),
-    )
-    text_color = _text_color(campaign, "cta")
-    draw.rounded_rectangle(shadow, radius=button_height // 2, fill=(0, 0, 0, 70))
+    button_color = _text_color(campaign, "campaign_message")
     draw.rounded_rectangle(
         button,
         radius=button_height // 2,
-        fill=(0, 0, 0, 105),
-        outline=text_color,
-        width=2,
+        fill=button_color,
     )
     text_x = button[0] + (button_width - text_width) / 2
     text_y = button[1] + (button_height - text_height) / 2 - font.size * 0.08
-    draw.text((text_x, text_y), text, font=font, fill=text_color)
+    draw.text((text_x, text_y), text, font=font, fill="#ffffff")
 
 
 def _box_pixels(box: tuple[float, float, float, float], size: tuple[int, int]) -> tuple[int, int, int, int]:
@@ -330,7 +319,7 @@ def _text_color(campaign: CampaignBrief, style_name: str) -> str:
     style = campaign.text_styles.get(style_name, {})
     if isinstance(style, dict) and style.get("color"):
         return str(style["color"])
-    return "#ffffff"
+    return "#00687d"
 
 
 def _brand_color(campaign: CampaignBrief, field_name: str, fallback: str) -> str:
