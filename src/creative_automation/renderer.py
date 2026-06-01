@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from creative_automation.models import CampaignBrief, LocalizedCreativeText
+from creative_automation.models import CampaignBrief, CreativeTextColors, LocalizedCreativeText
 
 
 @dataclass(frozen=True)
@@ -77,9 +77,10 @@ class CreativeRenderer:
         source_visual_path: Path,
         output_dir: Path,
         localized_text: LocalizedCreativeText | None = None,
+        text_colors: CreativeTextColors | None = None,
     ) -> list[Path]:
         return [
-            self.render(campaign, source_visual_path, output_dir, template, localized_text=localized_text)
+            self.render(campaign, source_visual_path, output_dir, template, localized_text=localized_text, text_colors=text_colors)
             for template in TEMPLATES.values()
         ]
 
@@ -90,18 +91,20 @@ class CreativeRenderer:
         output_dir: Path,
         template: AspectRatioTemplate,
         localized_text: LocalizedCreativeText | None = None,
+        text_colors: CreativeTextColors | None = None,
     ) -> Path:
         if not source_visual_path.exists():
             raise RendererError(f"Source visual not found: {source_visual_path}")
 
         output_dir.mkdir(parents=True, exist_ok=True)
-        canvas = _cover_image(source_visual_path, template.size).convert("RGBA")
+        canvas = cover_image_for_template(source_visual_path, template).convert("RGBA")
         overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
 
-        _draw_text_logo(draw, campaign, template)
-        _draw_campaign_message(draw, campaign, template, localized_text)
-        _draw_cta(draw, campaign, template, localized_text)
+        colors = text_colors or _default_text_colors(campaign)
+        _draw_text_logo(draw, campaign, template, colors)
+        _draw_campaign_message(draw, campaign, template, localized_text, colors)
+        _draw_cta(draw, campaign, template, localized_text, colors)
 
         final = Image.alpha_composite(canvas, overlay).convert("RGB")
         locale = localized_text.locale if localized_text else None
@@ -128,6 +131,14 @@ def adaptation_specs() -> list[dict[str, object]]:
 
 def template_for_ratio(ratio: str) -> AspectRatioTemplate:
     return TEMPLATES[ratio]
+
+
+def cover_image_for_template(source_visual_path: Path, template: AspectRatioTemplate) -> Image.Image:
+    return _cover_image(source_visual_path, template.size)
+
+
+def template_region(image: Image.Image, box: tuple[float, float, float, float]) -> Image.Image:
+    return image.crop(_box_pixels(box, image.size))
 
 
 def _cover_image(source_visual_path: Path, size: tuple[int, int]) -> Image.Image:
@@ -164,10 +175,15 @@ def _draw_readability_gradient(draw: ImageDraw.ImageDraw, size: tuple[int, int])
                 draw.point((x, y), fill=(0, 0, 0, alpha))
 
 
-def _draw_text_logo(draw: ImageDraw.ImageDraw, campaign: CampaignBrief, template: AspectRatioTemplate) -> None:
+def _draw_text_logo(
+    draw: ImageDraw.ImageDraw,
+    campaign: CampaignBrief,
+    template: AspectRatioTemplate,
+    colors: CreativeTextColors,
+) -> None:
     box = _box_pixels(template.logo_box, template.size)
     font = _font_for_box(campaign.brand.name, box, template.logo_size_scale, bold=True)
-    draw.text((box[0], box[1]), campaign.brand.name.upper(), font=font, fill=_text_color(campaign, "logo"))
+    draw.text((box[0], box[1]), campaign.brand.name.upper(), font=font, fill=_text_color(campaign, "logo", colors.brand))
 
 
 def _draw_campaign_message(
@@ -175,6 +191,7 @@ def _draw_campaign_message(
     campaign: CampaignBrief,
     template: AspectRatioTemplate,
     localized_text: LocalizedCreativeText | None,
+    colors: CreativeTextColors,
 ) -> None:
     box = _box_pixels(template.message_box, template.size)
     message = localized_text.campaign_message if localized_text else campaign.campaign_message
@@ -184,7 +201,7 @@ def _draw_campaign_message(
     total_height = line_height * len(lines)
     y = max(box[1], box[3] - total_height)
     for line in lines:
-        draw.text((box[0], y), line, font=font, fill=_text_color(campaign, "campaign_message"))
+        draw.text((box[0], y), line, font=font, fill=_text_color(campaign, "campaign_message", colors.campaign_message))
         y += line_height
 
 
@@ -193,6 +210,7 @@ def _draw_cta(
     campaign: CampaignBrief,
     template: AspectRatioTemplate,
     localized_text: LocalizedCreativeText | None,
+    colors: CreativeTextColors,
 ) -> None:
     box = _box_pixels(template.cta_box, template.size)
     cta = localized_text.cta if localized_text else campaign.cta
@@ -207,7 +225,7 @@ def _draw_cta(
     button_height = min(box[3] - box[1], text_height + pad_y * 2)
     button = (box[0], box[1], box[0] + button_width, box[1] + button_height)
 
-    button_color = _text_color(campaign, "campaign_message")
+    button_color = _text_color(campaign, "campaign_message", colors.cta)
     draw.rounded_rectangle(
         button,
         radius=button_height // 2,
@@ -315,11 +333,20 @@ def _needs_character_wrap(text: str) -> bool:
     return bool(text) and " " not in text and _needs_multilingual_font(text)
 
 
-def _text_color(campaign: CampaignBrief, style_name: str) -> str:
+def _default_text_colors(campaign: CampaignBrief) -> CreativeTextColors:
+    fallback = "#00687d"
+    return CreativeTextColors(
+        brand=_text_color(campaign, "logo", fallback),
+        campaign_message=_text_color(campaign, "campaign_message", fallback),
+        cta=_text_color(campaign, "cta", fallback),
+    )
+
+
+def _text_color(campaign: CampaignBrief, style_name: str, fallback: str) -> str:
     style = campaign.text_styles.get(style_name, {})
     if isinstance(style, dict) and style.get("color"):
         return str(style["color"])
-    return "#00687d"
+    return fallback
 
 
 def _brand_color(campaign: CampaignBrief, field_name: str, fallback: str) -> str:

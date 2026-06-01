@@ -152,9 +152,9 @@ Optional brand fields:
 
 Brand color usage:
 
-- `primary_color` is campaign metadata for the main brand accent and may be used by future templates or style defaults.
-- `secondary_color` is campaign metadata for a supporting brand accent and may be used by future templates or style defaults.
-- Explicit values in `text_styles` control rendered text colors when provided.
+- `primary_color` and `secondary_color` are the candidate colors for the rendered text logo.
+- For each rendered creative, the pipeline chooses the brand color with stronger contrast against the source visual behind the logo safe area.
+- Explicit values in `text_styles` may override rendered text colors when provided, but the default behavior should be automatic color selection.
 
 Example:
 
@@ -501,7 +501,46 @@ outputs/<campaign_id>/<product_id>/<asset_variant_id>/
 
 If adaptation fails for a ratio, the pipeline records a warning and falls back to rendering from the prepared source visual using the existing crop behavior. This keeps demos and batch runs from failing completely because of a single image adaptation issue.
 
-### 7.6 Aspect-Ratio Layout Rules
+### 7.6 Automatic Text Color Selection
+
+Before final rendering, the pipeline selects text colors for each product asset variant.
+
+Rendered text elements:
+
+- Brand text logo.
+- Campaign message.
+- CTA button.
+
+Brand text logo behavior:
+
+- The brand text logo uses either `brand.primary_color` or `brand.secondary_color`.
+- The selected color is the one with stronger visual contrast against the source visual region behind the logo safe area.
+- If only one brand color is provided, use that color.
+- If neither brand color is provided, use the campaign message color.
+
+Campaign message and CTA behavior:
+
+- The campaign message and CTA use the same campaign text color.
+- The campaign text color is selected dynamically from the source visual, product description, and campaign message.
+- The color selector runs once per product asset variant using the `1:1` source visual and template as the reference.
+- The selected colors are reused for all aspect-ratio outputs for that variant, including `1:1`, `9:16`, and `16:9`.
+- The OpenAI selector is the required real implementation for demo runs.
+- A deterministic rule-based selector may be used for local tests and development.
+- Visibility is more important than strict brand color matching.
+- The selector must return a valid hex color such as `#00687D`.
+- The renderer uses the selected campaign text color for the campaign message and the CTA button fill.
+- CTA text is white.
+
+The selector should consider:
+
+- Source visual brightness and contrast in the campaign message safe area.
+- Dominant color direction of the source visual.
+- Product description and campaign message tone.
+- Avoiding colors that disappear into the background.
+
+If the AI selector fails or returns an invalid color, the pipeline should fail clearly for OpenAI-backed runs. Local rule-based runs should use a stable high-contrast fallback.
+
+### 7.7 Aspect-Ratio Layout Rules
 
 Phase 1 uses fixed templates per aspect ratio:
 
@@ -509,9 +548,9 @@ Phase 1 uses fixed templates per aspect ratio:
 - `9:16`: source visual full-bleed, logo near top, campaign message in lower third, CTA near bottom.
 - `16:9`: source visual full-bleed, logo and message on the left, CTA below message.
 
-The renderer should preserve safe margins and keep text readable with overlays, shadows, or contrast panels when needed.
+The renderer should preserve safe margins and keep text readable through automatic text color selection and simple CTA treatment.
 
-### 7.7 LLM Localization
+### 7.8 LLM Localization
 
 The source campaign language is assumed to be English.
 
@@ -543,6 +582,7 @@ Target command:
   --prompt-planner openai \
   --image-provider openai \
   --localizer openai \
+  --color-selector openai \
   --adapt-source-visuals \
   --report
 ```
@@ -555,6 +595,7 @@ Arguments:
 - `--prompt-planner`: prompt planner provider name. Final POC supports `openai`; local development may support `rule-based`.
 - `--image-provider`: image generation provider name. Final POC supports `openai`; local development may support `mock`.
 - `--localizer`: localization provider name. Final POC supports `openai`; local development may support `rule-based`.
+- `--color-selector`: text color selector provider name. Final POC supports `openai`; local development may support `rule-based`.
 - `--adapt-source-visuals`: generate aspect-ratio-specific source visuals before final text rendering.
 
 Future optional arguments may include:
@@ -575,6 +616,7 @@ Minimum viable modules:
 - `src/creative_automation/asset_store.py`: asset discovery and output path management.
 - `src/creative_automation/prompt_planner.py`: prompt planner interface, OpenAI LLM planner, and optional rule-based development planner.
 - `src/creative_automation/localization.py`: localization interface, OpenAI LLM localizer, and optional rule-based development localizer.
+- `src/creative_automation/color_selector.py`: text color selector interface, OpenAI LLM selector, and rule-based development selector.
 - `src/creative_automation/generators.py`: image generation provider interface, OpenAI image generator, and optional mock generator.
 - `src/creative_automation/renderer.py`: Pillow final creative rendering.
 

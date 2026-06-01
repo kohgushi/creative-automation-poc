@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from creative_automation.brief_loader import BriefLoadError
+from creative_automation.color_selector import ColorSelectionError
 from creative_automation.generators import ImageGeneratorError
 from creative_automation.localization import LocalizationError
 from creative_automation.pipeline import build_dry_run_result, format_dry_run, run_pipeline
@@ -19,6 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--prompt-planner", default="openai", help="Prompt planner provider")
     parser.add_argument("--image-provider", default="openai", help="Image generation provider")
     parser.add_argument("--localizer", default="openai", help="Localization provider")
+    parser.add_argument("--color-selector", default="rule-based", help="Text color selection provider")
     parser.add_argument(
         "--adapt-source-visuals",
         action="store_true",
@@ -51,9 +53,10 @@ def main(argv: list[str] | None = None) -> int:
                 prompt_planner_name=args.prompt_planner,
                 image_provider_name=args.image_provider,
                 localizer_name=args.localizer,
+                color_selector_name=args.color_selector,
                 adapt_source_visuals=args.adapt_source_visuals,
             )
-    except (BriefLoadError, ImageGeneratorError, LocalizationError, PromptPlannerError) as exc:
+    except (BriefLoadError, ColorSelectionError, ImageGeneratorError, LocalizationError, PromptPlannerError) as exc:
         parser.error(str(exc))
 
     if args.report:

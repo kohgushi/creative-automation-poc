@@ -11,8 +11,8 @@ cta: Shop now
 
 brand:
   name: Brightside
-  primary_color: "#FFD84D"
-  secondary_color: "#C73659"
+  primary_color: "#F8FAFC"
+  secondary_color: "#111827"
 
 visual_direction:
   setting: sunny outdoor summer scene

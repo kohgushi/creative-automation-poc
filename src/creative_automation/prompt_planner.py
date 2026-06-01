@@ -85,7 +85,10 @@ def build_rule_based_prompt(campaign: CampaignBrief, product: Product, variant: 
     if variant.source == AssetSource.GENERATED_FROM_PRODUCT_ASSET:
         source_clause = (
             "Transform the provided product asset into a campaign-ready source visual. "
-            "Preserve the product identity, packaging shape, and recognizable product details."
+            "Use the provided product asset as the exact hero product reference. Preserve the product identity, "
+            "package type, package silhouette, cap or closure style, material, proportions, label artwork, visible "
+            "graphics, and recognizable product details. Do not redesign the product, do not change a carton into a "
+            "bottle or can, and do not invent new label text or logos."
         )
     elif variant.source == AssetSource.GENERATED_FROM_TEXT:
         source_clause = (
@@ -115,6 +118,8 @@ def _openai_instruction(campaign: CampaignBrief, product: Product, variant: Asse
     return (
         "You are a creative production prompt planner. "
         "Write one concise, production-ready prompt for an image generation model. "
+        "If the prompt type is product-asset-to-source-visual, preserving the exact input product package shape, "
+        "material, proportions, and visible artwork is mandatory. Do not convert the package to another format. "
         "Return only the prompt text, with no markdown, labels, explanations, or alternatives.\n\n"
         f"Prompt type: {prompt_type}\n"
         f"Draft constraints and context: {base_prompt}"

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from creative_automation.asset_store import AssetStore
 from creative_automation.brief_loader import load_campaign_brief
+from creative_automation.color_selector import get_color_selector
 from creative_automation.generators import get_image_generator
 from creative_automation.localization import get_localizer
 from creative_automation.models import AssetSource
@@ -78,6 +79,7 @@ def run_pipeline(
     prompt_planner_name: str,
     image_provider_name: str,
     localizer_name: str = "openai",
+    color_selector_name: str = "rule-based",
     adapt_source_visuals: bool = False,
 ) -> DryRunResult:
     result = prepare_source_visuals(
@@ -90,6 +92,7 @@ def run_pipeline(
     asset_store = AssetStore(asset_root=asset_root, output_root=output_root)
     renderer = CreativeRenderer()
     image_generator = get_image_generator(image_provider_name)
+    color_selector = get_color_selector(color_selector_name)
     result.localized_texts = get_localizer(localizer_name).localize(result.campaign)
 
     for product_plan in result.products:
@@ -106,17 +109,27 @@ def run_pipeline(
                     variant=variant,
                 )
             variant.rendition_paths = []
+            reference_template = template_for_ratio("1:1")
+            reference_source = variant.adapted_source_visual_paths.get("1:1", source_visual_path)
+            text_colors = color_selector.select_colors(
+                result.campaign,
+                product_plan.product,
+                reference_source,
+                reference_template,
+            )
             for spec in adaptation_specs():
                 ratio = str(spec["ratio"])
                 render_source = variant.adapted_source_visual_paths.get(ratio, source_visual_path)
+                template = template_for_ratio(ratio)
                 for localized_text in result.localized_texts.values():
                     variant.rendition_paths.append(
                         renderer.render(
                             result.campaign,
                             render_source,
                             output_dir,
-                            template_for_ratio(ratio),
+                            template,
                             localized_text=localized_text,
+                            text_colors=text_colors,
                         )
                     )
 

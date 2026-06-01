@@ -77,6 +77,7 @@ Run the full OpenAI-backed pipeline:
   --prompt-planner openai \
   --image-provider openai \
   --localizer openai \
+  --color-selector openai \
   --adapt-source-visuals \
   --report
 ```

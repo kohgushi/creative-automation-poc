@@ -139,6 +139,24 @@ class LocalizedCreativeText(BaseModel):
     cta: str
 
 
+class CreativeTextColors(BaseModel):
+    brand: str
+    campaign_message: str
+    cta: str
+
+    @field_validator("brand", "campaign_message", "cta")
+    @classmethod
+    def validate_hex_color(cls, value: str) -> str:
+        value = _non_empty(value, "text color")
+        if not value.startswith("#") or len(value) != 7:
+            raise ValueError("text colors must use #RRGGBB hex format")
+        try:
+            int(value[1:], 16)
+        except ValueError as exc:
+            raise ValueError("text colors must use #RRGGBB hex format") from exc
+        return value
+
+
 class ProductAssetPlan(BaseModel):
     product: Product
     variants: list[AssetVariant]
