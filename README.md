@@ -18,6 +18,7 @@ The final POC is expected to use OpenAI for:
 - Image generation for missing source visuals.
 - Aspect-aware source visual adaptation before final rendering.
 - LLM-based localization of campaign message and CTA text.
+- LLM-assisted color selection using image-derived visual features and campaign context.
 
 Text placement is handled by a deterministic rendering layer so the logo, campaign message, and CTA remain accurate and reviewable.
 
@@ -60,7 +61,7 @@ Create a local `.env` file:
 ```env
 OPENAI_API_KEY=your_api_key_here
 OPENAI_TEXT_MODEL=gpt-4.1-mini
-OPENAI_IMAGE_MODEL=gpt-image-1
+OPENAI_IMAGE_MODEL=gpt-image-2
 ```
 
 Do not commit `.env`.
@@ -158,7 +159,9 @@ outputs/summer_refresh_2026/
 - Source visuals can be adapted per aspect ratio so products are less likely to be cut off by final crops.
 - Final creative filenames include locale codes so language variants are easy to review side by side.
 - OpenAI is the concrete LLM and image generation provider for this POC.
+- Text color selection uses image-derived visual features and LLM reasoning to improve readability.
 - Text logo, campaign message, and CTA are rendered deterministically with Pillow instead of relying on image generation models to render text.
+- JSON reports preserve prompts, asset sources, output paths, warnings, and validation results for traceability.
 - The renderer uses fixed aspect-ratio templates for reliable `1:1`, `9:16`, and `16:9` outputs.
 
 ## Assumptions and Limitations
@@ -169,7 +172,7 @@ outputs/summer_refresh_2026/
 - The company logo is rendered as styled text, not an image file.
 - Generated outputs are review-ready local files, not automatically published ads.
 - The current layout templates are intentionally simple and can be replaced by brand-approved templates later.
-- `outputs/` is runtime-generated and ignored by git.
+- `outputs/` is runtime-generated and ignored by git. Run the command above to reproduce generated creatives and reports locally.
 
 ## Notes
 

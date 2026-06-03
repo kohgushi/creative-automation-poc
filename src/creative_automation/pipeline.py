@@ -121,6 +121,7 @@ def run_pipeline(
     Returns:
         Pipeline result with localized text, generated source visuals, and final renditions.
     """
+    # 1. Resolve each product into reusable or generated source visuals.
     result = prepare_source_visuals(
         brief_path=brief_path,
         asset_root=asset_root,
@@ -132,6 +133,8 @@ def run_pipeline(
     renderer = CreativeRenderer()
     image_generator = get_image_generator(image_provider_name)
     color_selector = get_color_selector(color_selector_name)
+
+    # 2. Prepare localized campaign copy once, then reuse it across every rendered variant.
     result.localized_texts = get_localizer(localizer_name).localize(result.campaign)
 
     for product_plan in result.products:
@@ -140,6 +143,8 @@ def run_pipeline(
             if source_visual_path is None:
                 continue
             output_dir = asset_store.output_dir_for(result.campaign.campaign_id, variant)
+
+            # 3. Optionally create aspect-ratio-specific source visuals before text rendering.
             if adapt_source_visuals:
                 _adapt_source_visuals_for_variant(
                     image_generator=image_generator,
@@ -148,6 +153,8 @@ def run_pipeline(
                     variant=variant,
                 )
             variant.rendition_paths = []
+
+            # 4. Pick text colors once from the 1:1 reference visual so all ratios stay consistent.
             reference_template = template_for_ratio("1:1")
             reference_source = variant.adapted_source_visual_paths.get("1:1", source_visual_path)
             text_colors = color_selector.select_colors(
@@ -156,6 +163,8 @@ def run_pipeline(
                 reference_source,
                 reference_template,
             )
+
+            # 5. Render every aspect-ratio and locale combination deterministically with Pillow.
             for spec in adaptation_specs():
                 ratio = str(spec["ratio"])
                 render_source = variant.adapted_source_visual_paths.get(ratio, source_visual_path)
